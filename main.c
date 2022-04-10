@@ -85,6 +85,7 @@ struct threadargs {
     int outfd;
     int startpoint;
     int endpoint;
+    int result;
 };
 
 typedef struct threadargs lookupthread_args;
@@ -140,7 +141,7 @@ cleanup:
     return res;
 }
 
-void
+int
 lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, int outfd) {
     DIR *pd;
     FILE *descfile;
@@ -178,17 +179,18 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
         }
     }
     fclose(descfile);
+    return 0;
 }
 
-void 
+int 
 lookup_entries(lookupthread_args *args) {
-    lookup_entries_args(args->descfname, args->descffd, args->startpoint, args->endpoint, args->outfd);
+    return lookup_entries_args(args->descfname, args->descffd, args->startpoint, args->endpoint, args->outfd);
 }
 
 void *
 search_entry(void *thread_args) {
     lookupthread_args *args = (lookupthread_args *)thread_args;
-    lookup_entries(args);
+    args->result = lookup_entries(args);
 }
 
 int
@@ -256,39 +258,56 @@ main(int argc, char **argv) {
 
     if (worth_multithread(total_entrycnt)) {
         pthread_t *threadpool;
-        lookupthread_args *thrargs;
+        lookupthread_args *thargs;
         int thcount, thpoolsize, thargssize;
         int tcachefd;
         char targetcache[] = DESCFILE;
+        int res = 1;
         tcachefd = mkstemp(targetcache);
     
         if (tcachefd == -1) {
             eperror();
-            return 1;
+            return res;
         }
         
         thcount = calc_threadcount(total_entrycnt);
         thpoolsize = sizeof(pthread_t) * thcount;
         thargssize = sizeof(lookupthread_args) * thcount;
         threadpool = malloc(thpoolsize);
-        thrargs = malloc(sizeof(lookupthread_args) * thcount);
+        thargs = malloc(sizeof(lookupthread_args) * thcount);
         memset(threadpool, 0, thpoolsize);
 
         for (int tid = 0; tid < thcount; tid++) {
             if (setup_threadargs(threadpool + tid, )) {
                 eperror();
-                return 1;
+                return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, NULL);
         }
+        
+        for (int tid = 0; tid < thcount; tid++) {
+            pthread_join(threadpool[tid], NULL);
+            res |= thargs[tid].result;
+            clean_threadargs(thargs + tid);
+        }
+
         free(threadpool);
+        return res;
     } else {
         lookupthread_args thargs;
+        lookupthread_args *thargsp;
+        int res = 1;
+
         if (setup_threadargs(&thargs, STDOUT_FILENO)) {
             eperror();
-            return 1;
+            return res;
         }
-        lookup_entries(&thargs);
+        thargsp = &thargs;
+
+        lookup_entries(thargsp);
+        res = thargsp->result;
+        clean_threadargs(thargsp);
+        return res;
     }
 
     return 0;
