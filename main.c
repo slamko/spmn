@@ -11,11 +11,13 @@
 #include <errno.h>
 
 #define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
+#define INDEXMD "/index.md"
 #define LINEBUF 4096
 #define DESCRIPTION_SECTION "Description" 
 #define DESCRIPTION_SECTION_LENGTH 11
 #define GREP_BIN "/bin/grep"
 #define DESCFILE "descfile.XXXXXX"
+#define RESULTCACHE "result.XXXXXX"
 #define DEVNULL "/dev/null"
 #define ASCNULL '\0'
 #define OPTTHREAD_COUNT 4
@@ -41,7 +43,7 @@ concat(char *base, char *append) {
 
 int
 append_patchmd(char **buf, char *patch) {
-    char *patchmd = concat(patch, "/index.md");
+    char *patchmd = concat(patch, INDEXMD);
     *buf = concat(DWM_PATCHES, patchmd);
     free(patchmd);
     return 0;
@@ -170,15 +172,15 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
                 if (grepst == 0) {
                     printf("\n%s:\n", pdir->d_name);
                     while((dch = fgetc(descfile)) != EOF) {
-                        fputc(dch, stdout);
+                        write(outfd, &dch, sizeof(char));
                     }
                 }
-                descfile = NULL;
             }
             free(indexmd);
         }
     }
     fclose(descfile);
+    remove(descfile);
     return 0;
 }
 
@@ -216,21 +218,56 @@ calc_threadcount(int entrycnt) {
 }
 
 int
-setup_threadargs(lookupthread_args *thargs, int thoutfd) {
+setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entrycnt, int thoutfd) {
+    lookupthread_args *thargs;
     int descffd;
     char descfname[] = DESCFILE;
+
+    if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
+        error("Internal exception");
+        return 1;
+    }
+
+    thargs = threadpool + tid;
     descffd = mkstemp(descfname);
     
-    if (descffd == -1) 
+    if (descffd == -1) {
+        eperror();
         return 1;
+    }
 
     thargs->descfname = strdup(descfname);
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
+
+    if (thcount == 1) {
+        thargs->startpoint = 0;
+        thargs->endpoint = entrycnt;
+        return 0;
+    }
+
+    if (tid == 0) {
+        thargs->startpoint = 0;
+        if (thcount < OPTTHREAD_COUNT) {
+            thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
+        } else {
+
+        }
+    } else {
+        lookupthread_args *prevthargs = threadpool + (tid - 1);
+        thargs->startpoint = prevthargs->endpoint;
+
+        if (tid == thcount - 1) {
+            thargs->endpoint = entrycnt;
+        } else {
+            thargs->endpoint = (prevthargs->endpoint - prevthargs->startpoint) + thargs->startpoint; 
+        }
+        return 0;
+    }
 }
 
 void
-clean_threadargs(lookupthread_args *thargs) {
+cleanup_threadargs(lookupthread_args *thargs) {
     free(thargs->descfname);
     free(thargs);
 }
@@ -239,7 +276,7 @@ int
 main(int argc, char **argv) {
     DIR *pd;
     struct dirent *pdir;
-    int total_entrycnt = 0, entrycnt = 0;
+    int tentrycnt = 0, entrycnt = 0;
     
     if (argc < 2) {
         usage();
@@ -252,34 +289,31 @@ main(int argc, char **argv) {
 
     while ((pdir = readdir(pd)) != NULL) {
         if (pdir->d_type == DT_DIR) 
-            total_entrycnt++;
+            tentrycnt++;
     }
     closedir(pd);
 
-    if (worth_multithread(total_entrycnt)) {
+    if (worth_multithread(tentrycnt)) {
         pthread_t *threadpool;
         lookupthread_args *thargs;
-        int thcount, thpoolsize, thargssize;
-        int tcachefd;
-        char targetcache[] = DESCFILE;
+        int thcount, thpoolsize, rescachefd;
+        char targetcache[] = RESULTCACHE;
         int res = 1;
-        tcachefd = mkstemp(targetcache);
-    
-        if (tcachefd == -1) {
+
+        rescachefd = mkstemp(targetcache);
+        if (rescachefd == -1) {
             eperror();
             return res;
         }
         
-        thcount = calc_threadcount(total_entrycnt);
+        thcount = calc_threadcount(tentrycnt);
         thpoolsize = sizeof(pthread_t) * thcount;
-        thargssize = sizeof(lookupthread_args) * thcount;
         threadpool = malloc(thpoolsize);
         thargs = malloc(sizeof(lookupthread_args) * thcount);
         memset(threadpool, 0, thpoolsize);
 
         for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(threadpool + tid, )) {
-                eperror();
+            if (setup_threadargs(threadpool, tid, thcount, tentrycnt, rescachefd)) {
                 return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, NULL);
@@ -288,25 +322,24 @@ main(int argc, char **argv) {
         for (int tid = 0; tid < thcount; tid++) {
             pthread_join(threadpool[tid], NULL);
             res |= thargs[tid].result;
-            clean_threadargs(thargs + tid);
+            cleanup_threadargs(thargs + tid);
         }
 
         free(threadpool);
-        return res;
+        return !!res;
     } else {
         lookupthread_args thargs;
         lookupthread_args *thargsp;
         int res = 1;
 
-        if (setup_threadargs(&thargs, STDOUT_FILENO)) {
-            eperror();
+        if (setup_threadargs(&thargs, 0, 1, entrycnt, STDOUT_FILENO)) {
             return res;
         }
         thargsp = &thargs;
 
         lookup_entries(thargsp);
         res = thargsp->result;
-        clean_threadargs(thargsp);
+        cleanup_threadargs(thargsp);
         return res;
     }
 
