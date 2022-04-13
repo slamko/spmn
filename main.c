@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <math.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
 #define INDEXMD "/index.md"
@@ -91,6 +92,7 @@ struct threadargs {
     int startpoint;
     int endpoint;
     int result;
+    pthread_mutex_t *mutex;
 };
 
 typedef struct threadargs lookupthread_args;
@@ -146,8 +148,22 @@ cleanup:
     return res;
 }
 
+void 
+lock_if_multithreaded(pthread_mutex_t *mutex) {
+    if (mutex)
+        pthread_mutex_lock(mutex);
+}
+
+
+void 
+unlock_if_multithreaded(pthread_mutex_t *mutex) {
+    if (mutex)
+        pthread_mutex_unlock(mutex);
+}
+
 int
-lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, int outfd) {
+lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
+                        int outfd, pthread_mutex_t *fmutex) {
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
@@ -176,6 +192,7 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
                     execl(GREP_BIN, GREP_BIN, searchstr, descfname, NULL);
                 }
                 wait(&grepst);
+                lock_if_multithreaded(fmutex);
 
                 if (grepst == 0) {
                     fprintf(rescache, "\n%s:\n", pdir->d_name);
@@ -183,6 +200,8 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
                         fputc(dch, rescache);
                     }
                 }
+
+                unlock_if_multithreaded(fmutex);
             }
             free(indexmd);
         }
@@ -191,19 +210,21 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
     fclose(rescache);
     fclose(descfile);
     closedir(pd);
-    remove(descfile);
+    remove(descfname);
     return 0;
 }
 
 int 
 lookup_entries(lookupthread_args *args) {
-    return lookup_entries_args(args->descfname, args->descffd, args->startpoint, args->endpoint, args->outfd);
+    return lookup_entries_args(args->descfname, args->descffd, args->startpoint, 
+        args->endpoint, args->outfd, args->mutex);
 }
 
 void *
 search_entry(void *thread_args) {
     lookupthread_args *args = (lookupthread_args *)thread_args;
     args->result = lookup_entries(args);
+    return NULL;
 }
 
 int
@@ -230,7 +251,8 @@ calc_threadcount(int entrycnt) {
 }
 
 int
-setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entrycnt, int thoutfd) {
+setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entrycnt,
+                    int thoutfd, pthread_mutex_t *fmutex) {
     lookupthread_args *thargs;
     int descffd;
     char descfname[] = DESCFILE;
@@ -251,6 +273,7 @@ setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entryc
     thargs->descfname = strdup(descfname);
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
+    thargs->mutex = fmutex;
 
     if (thcount == 1) {
         thargs->startpoint = 0;
@@ -276,8 +299,8 @@ setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entryc
         } else {
             thargs->endpoint = (prevthargs->endpoint - prevthargs->startpoint) + thargs->startpoint; 
         }
-        return 0;
     }
+    return 0;
 }
 
 void
@@ -308,13 +331,14 @@ main(int argc, char **argv) {
 
     if (worth_multithread(tentrycnt)) {
         pthread_t *threadpool;
+        pthread_mutex_t fmutex;
         lookupthread_args *thargs;
         FILE *rescache;
         int thcount, thpoolsize, rescachefd;
-        char targetcache[] = RESULTCACHE, resc;
+        char rescachename[] = RESULTCACHE, resc;
         int res = 1;
 
-        rescachefd = mkstemp(targetcache);
+        rescachefd = mkstemp(rescachename);
         if (rescachefd == -1) {
             eperror();
             return res;
@@ -325,9 +349,10 @@ main(int argc, char **argv) {
         threadpool = malloc(thpoolsize);
         thargs = malloc(sizeof(lookupthread_args) * thcount);
         memset(threadpool, 0, thpoolsize);
+        pthread_mutex_init(&fmutex, NULL);
 
         for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(threadpool, tid, thcount, tentrycnt, rescachefd)) {
+            if (setup_threadargs(threadpool, tid, thcount, tentrycnt, rescachefd, &fmutex)) {
                 return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
@@ -338,23 +363,25 @@ main(int argc, char **argv) {
             res |= thargs[tid].result;
             cleanup_threadargs(thargs + tid);
         }
-
+        
+        pthread_mutex_destroy(&fmutex);
         free(threadpool);
+
         TRY(rescache = fdopen(rescachefd, "r")) 
             WITH error("Failed to copy rescache");
 
         while ((resc = fgetc(rescache)) != EOF) {
             fputc(resc, stdout);
         }
-        flose(rescache);
-        remove(rescache);
+        fclose(rescache);
+        remove(rescachename);
         return !!res;
     } else {
         lookupthread_args thargs;
         lookupthread_args *thargsp;
         int res = 1;
 
-        if (setup_threadargs(&thargs, 0, 1, entrycnt, STDOUT_FILENO)) {
+        if (setup_threadargs(&thargs, 0, 1, entrycnt, STDOUT_FILENO, NULL)) {
             return res;
         }
         thargsp = &thargs;
