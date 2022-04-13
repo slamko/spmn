@@ -1,8 +1,8 @@
 CC=gcc -g
 SRC=$(wildcard *.c)
 BIN=sise 
-LIBS=-pthread
+LIBS=-pthread -lm
 CFLAGS=-Wall -Wextra -Werror -pedantic
 
 all: $(SRC)
-	$(CC) $(CFLAGS) $(LIBS) $(SRC) -o $(BIN) 
+	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(BIN) 

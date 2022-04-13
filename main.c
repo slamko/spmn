@@ -67,8 +67,11 @@ error(const char* err_format, ...) {
     va_end(args);
 }
 
+void
+empty() {}
+
 #define TRY(EXP) (EXP)
-#define WITH ? : 
+#define WITH ? empty() : 
 
 void
 eperror() {
@@ -168,6 +171,9 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
     FILE *descfile, *rescache;
     struct dirent *pdir;
 
+    printf("\nStart point: %d", startpoint);
+    printf("\nEnd point: %d", endpoint);
+
     TRY(rescache = fdopen(outfd, "w")) 
         WITH error("Failed to open result cache file");
     TRY(descfile = fdopen(descffd, "r")) 
@@ -229,6 +235,7 @@ search_entry(void *thread_args) {
 
 int
 worth_multithread(int entrycount) {
+    printf("\nEntrycount: %d\n", entrycount);
     //return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
     return 0;
 }
@@ -251,7 +258,7 @@ calc_threadcount(int entrycnt) {
 }
 
 int
-setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entrycnt,
+setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt,
                     int thoutfd, pthread_mutex_t *fmutex) {
     lookupthread_args *thargs;
     int descffd;
@@ -262,7 +269,7 @@ setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entryc
         return 1;
     }
 
-    thargs = threadpool + tid;
+    thargs = threadargpool + tid;
     descffd = mkstemp(descfname);
     
     if (descffd == -1) {
@@ -291,7 +298,7 @@ setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entryc
             thargs->endpoint = thargs->startpoint + approxstartval;
         }
     } else {
-        lookupthread_args *prevthargs = threadpool + (tid - 1);
+        lookupthread_args *prevthargs = threadargpool + (tid - 1);
         thargs->startpoint = prevthargs->endpoint;
 
         if (tid == thcount - 1) {
@@ -352,7 +359,7 @@ main(int argc, char **argv) {
         pthread_mutex_init(&fmutex, NULL);
 
         for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(threadpool, tid, thcount, tentrycnt, rescachefd, &fmutex)) {
+            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, &fmutex)) {
                 return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
