@@ -66,6 +66,9 @@ error(const char* err_format, ...) {
     va_end(args);
 }
 
+#define TRY(EXP) (EXP)
+#define WITH ? : 
+
 void
 eperror() {
     error(strerror(errno));
@@ -146,10 +149,15 @@ cleanup:
 int
 lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, int outfd) {
     DIR *pd;
-    FILE *descfile;
+    FILE *descfile, *rescache;
     struct dirent *pdir;
 
-    descfile = fdopen(descffd, "r");
+    TRY(rescache = fdopen(outfd, "w")) 
+        WITH error("Failed to open result cache file");
+    TRY(descfile = fdopen(descffd, "r")) 
+        WITH error("Failed to open descfile");
+    TRY(pd = opendir(DWM_PATCHES)) 
+        WITH error("Failed to open patch dir");
 
     while ((pdir = readdir(pd)) != NULL) {
         if (pdir->d_type == DT_DIR) {
@@ -170,16 +178,19 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
                 wait(&grepst);
 
                 if (grepst == 0) {
-                    printf("\n%s:\n", pdir->d_name);
+                    fprintf(rescache, "\n%s:\n", pdir->d_name);
                     while((dch = fgetc(descfile)) != EOF) {
-                        write(outfd, &dch, sizeof(char));
+                        fputc(dch, rescache);
                     }
                 }
             }
             free(indexmd);
         }
     }
+
+    fclose(rescache);
     fclose(descfile);
+    closedir(pd);
     remove(descfile);
     return 0;
 }
@@ -197,7 +208,8 @@ search_entry(void *thread_args) {
 
 int
 worth_multithread(int entrycount) {
-    return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
+    //return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
+    return 0;
 }
 
 int
@@ -251,7 +263,9 @@ setup_threadargs(lookupthread_args *threadpool, int tid, int thcount, int entryc
         if (thcount < OPTTHREAD_COUNT) {
             thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
         } else {
-
+            double actworkamount = entrycnt / OPTTHREAD_COUNT;
+            int approxstartval = (int)(floor(actworkamount / 100)) + 2;
+            thargs->endpoint = thargs->startpoint + approxstartval;
         }
     } else {
         lookupthread_args *prevthargs = threadpool + (tid - 1);
@@ -284,7 +298,6 @@ main(int argc, char **argv) {
     }
 
     searchstr = argv[1];
-    
     pd = opendir(DWM_PATCHES);
 
     while ((pdir = readdir(pd)) != NULL) {
@@ -296,8 +309,9 @@ main(int argc, char **argv) {
     if (worth_multithread(tentrycnt)) {
         pthread_t *threadpool;
         lookupthread_args *thargs;
+        FILE *rescache;
         int thcount, thpoolsize, rescachefd;
-        char targetcache[] = RESULTCACHE;
+        char targetcache[] = RESULTCACHE, resc;
         int res = 1;
 
         rescachefd = mkstemp(targetcache);
@@ -316,7 +330,7 @@ main(int argc, char **argv) {
             if (setup_threadargs(threadpool, tid, thcount, tentrycnt, rescachefd)) {
                 return res;
             }
-            pthread_create(threadpool + tid, NULL, *search_entry, NULL);
+            pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
         }
         
         for (int tid = 0; tid < thcount; tid++) {
@@ -326,6 +340,14 @@ main(int argc, char **argv) {
         }
 
         free(threadpool);
+        TRY(rescache = fdopen(rescachefd, "r")) 
+            WITH error("Failed to copy rescache");
+
+        while ((resc = fgetc(rescache)) != EOF) {
+            fputc(resc, stdout);
+        }
+        flose(rescache);
+        remove(rescache);
         return !!res;
     } else {
         lookupthread_args thargs;
