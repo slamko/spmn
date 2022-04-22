@@ -5,11 +5,12 @@
 #include <string.h>
 #include <stdbool.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <math.h>
 #include <errno.h>
-#include <stdarg.h>
+#include <stdarg.h> 
 
 #define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
 #define INDEXMD "/index.md"
@@ -101,12 +102,11 @@ struct threadargs {
 typedef struct threadargs lookupthread_args;
 
 int
-read_description(char *indexmd, int descffd) {
-    FILE *descfile;
+read_description(char *indexmd, FILE *descfile) {
     FILE *index;
     int res = 1;
     int descrlen = 0;
-    char linebuf[4096];
+    char linebuf[LINEBUF];
     bool description_exists = false;
 
     index = fopen(indexmd, "r");
@@ -131,11 +131,6 @@ read_description(char *indexmd, int descffd) {
             tittle[DESCRIPTION_SECTION_LENGTH] = ASCNULL;
             if (strcmp(tittle, DESCRIPTION_SECTION) == 0) {
                 description_exists = true;
-                descfile = fdopen(descffd, "w");
-                if (!descfile) {
-                    error("Unable to access cache file");
-                    goto cleanup;
-                }
             } 
         }
         memset(linebuf, ASCNULL, LINEBUF);
@@ -146,9 +141,30 @@ read_description(char *indexmd, int descffd) {
         res = 0;
     }
 
-cleanup:
     fclose(index);
     return res;
+}
+
+int isdir(struct dirent *dir) {
+    struct stat dst;
+    if (!dir || !dir->d_name)
+        return 0;
+
+    if (dir->d_name[0] == '.') 
+        return 0;
+
+    switch (dir->d_type)
+    {
+    case DT_DIR:
+        return 1;
+    case DT_UNKNOWN: 
+        if (stat(dir->d_name, &dst) == 0)
+            return S_ISDIR(dst.st_mode);
+        
+        return 0;  
+    default:
+        return 0;
+    }
 }
 
 void 
@@ -176,24 +192,25 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
 
     TRY(rescache = fdopen(outfd, "w")) 
         WITH error("Failed to open result cache file");
-    TRY(descfile = fdopen(descffd, "r")) 
+    TRY(descfile = fdopen(descffd, "w+")) 
         WITH error("Failed to open descfile");
     TRY(pd = opendir(DWM_PATCHES)) 
         WITH error("Failed to open patch dir");
 
     while ((pdir = readdir(pd)) != NULL) {
-        if (pdir->d_type == DT_DIR) {
+        if (isdir(pdir)) {
             char *indexmd = NULL; 
-            int grep, grepst, devnull;
+            int grep, grepst;
             char dch;
 
             append_patchmd(&indexmd, pdir->d_name);
+            truncate(descfname, 0);
 
-            if (read_description(indexmd, descffd) == 0) {
-                grep = fork();
+            if (read_description(indexmd, descfile) == 0) {
                 fseek(descfile, 0, SEEK_SET);
-                devnull = open(DEVNULL, O_WRONLY);
+                grep = fork();
                 if (grep == 0) {
+                    int devnull = open(DEVNULL, O_WRONLY);
                     dup2(devnull, STDOUT_FILENO);
                     execl(GREP_BIN, GREP_BIN, searchstr, descfname, NULL);
                 }
@@ -311,8 +328,13 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
 }
 
 void
-cleanup_threadargs(lookupthread_args *thargs) {
+cleanup_descfname(lookupthread_args *thargs) {
     free(thargs->descfname);
+}
+
+void
+cleanup_threadargs(lookupthread_args *thargs) {
+    cleanup_descfname(thargs);
     free(thargs);
 }
 
@@ -320,7 +342,7 @@ int
 main(int argc, char **argv) {
     DIR *pd;
     struct dirent *pdir;
-    int tentrycnt = 0, entrycnt = 0;
+    int tentrycnt = 0;
     
     if (argc < 2) {
         usage();
@@ -388,14 +410,14 @@ main(int argc, char **argv) {
         lookupthread_args *thargsp;
         int res = 1;
 
-        if (setup_threadargs(&thargs, 0, 1, entrycnt, STDOUT_FILENO, NULL)) {
+        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, NULL)) {
             return res;
         }
         thargsp = &thargs;
 
         lookup_entries(thargsp);
         res = thargsp->result;
-        cleanup_threadargs(thargsp);
+        cleanup_descfname(thargsp);
         return res;
     }
 
