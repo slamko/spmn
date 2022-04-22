@@ -16,7 +16,7 @@
 #define INDEXMD "/index.md"
 #define LINEBUF 4096
 #define DESCRIPTION_SECTION "Description" 
-#define DESCRIPTION_SECTION_LENGTH 11
+#define DESCRIPTION_SECTION_LENGTH 12
 #define GREP_BIN "/bin/grep"
 #define DESCFILE "descfile.XXXXXX"
 #define RESULTCACHE "result.XXXXXX"
@@ -101,11 +101,20 @@ struct threadargs {
 
 typedef struct threadargs lookupthread_args;
 
+char *
+tryread_desc(FILE *index, char *buf, bool descrexists) {
+    if (descrexists) {
+        return fgets(buf, LINEBUF, index);
+    }
+    return fgets(buf, DESCRIPTION_SECTION_LENGTH, index);
+}
+
 int
 read_description(char *indexmd, FILE *descfile) {
     FILE *index;
     int res = 1;
     int descrlen = 0;
+    char tempbuf[LINEBUF];
     char linebuf[LINEBUF];
     bool description_exists = false;
 
@@ -115,29 +124,27 @@ read_description(char *indexmd, FILE *descfile) {
     }
 
     memset(linebuf, ASCNULL, LINEBUF);
+    memset(tempbuf, ASCNULL, LINEBUF);
 
-    while(fgets(linebuf, LINEBUF, index) != NULL) {
+    while(tryread_desc(index, linebuf, description_exists)) {
         if (description_exists) {
-            descrlen++;
             if (is_line_separator(linebuf)) {
                 if (descrlen > 1)
                     break;
             } else {
-                fwrite(linebuf, sizeof(char), strlen(linebuf), descfile);
+                if (descrlen > 0) {
+                    fputs(tempbuf, descfile);
+                }
+                memcpy(tempbuf, linebuf, LINEBUF);
             }
+            descrlen++;
         } else {
-            char tittle[DESCRIPTION_SECTION_LENGTH + 1];
-            memcpy(tittle, linebuf, DESCRIPTION_SECTION_LENGTH);
-            tittle[DESCRIPTION_SECTION_LENGTH] = ASCNULL;
-            if (strcmp(tittle, DESCRIPTION_SECTION) == 0) {
-                description_exists = true;
-            } 
+            description_exists = !strcmp(linebuf, DESCRIPTION_SECTION);
         }
         memset(linebuf, ASCNULL, LINEBUF);
     }
 
     if (description_exists) {
-        fclose(descfile);
         res = 0;
     }
 
@@ -173,7 +180,6 @@ lock_if_multithreaded(pthread_mutex_t *mutex) {
         pthread_mutex_lock(mutex);
 }
 
-
 void 
 unlock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
@@ -189,14 +195,13 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
 
     printf("\nStart point: %d", startpoint);
     printf("\nEnd point: %d", endpoint);
+    printf("\ndescfd: %d", descffd);
 
     TRY(rescache = fdopen(outfd, "w")) 
         WITH error("Failed to open result cache file");
-    TRY(descfile = fdopen(descffd, "w+")) 
-        WITH error("Failed to open descfile");
     TRY(pd = opendir(DWM_PATCHES)) 
         WITH error("Failed to open patch dir");
-
+    
     while ((pdir = readdir(pd)) != NULL) {
         if (isdir(pdir)) {
             char *indexmd = NULL; 
@@ -204,18 +209,22 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
             char dch;
 
             append_patchmd(&indexmd, pdir->d_name);
-            truncate(descfname, 0);
-
+            TRY(descfile = fopen(descfname, "w+")) 
+                WITH error("Failed to open descfile");
+            
             if (read_description(indexmd, descfile) == 0) {
-                fseek(descfile, 0, SEEK_SET);
                 grep = fork();
+                fflush(descfile);
+
                 if (grep == 0) {
                     int devnull = open(DEVNULL, O_WRONLY);
                     dup2(devnull, STDOUT_FILENO);
                     execl(GREP_BIN, GREP_BIN, searchstr, descfname, NULL);
                 }
+
                 wait(&grepst);
                 lock_if_multithreaded(fmutex);
+                fseek(descfile, 0, SEEK_SET);
 
                 if (grepst == 0) {
                     fprintf(rescache, "\n%s:\n", pdir->d_name);
@@ -227,11 +236,11 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
                 unlock_if_multithreaded(fmutex);
             }
             free(indexmd);
+            fclose(descfile);
         }
     }
 
     fclose(rescache);
-    fclose(descfile);
     closedir(pd);
     remove(descfname);
     return 0;
