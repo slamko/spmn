@@ -1,8 +1,18 @@
 CC=gcc -g
-SRC=$(wildcard *.c)
-BIN=sise 
+SRC=$(wildcard src/*.c)
+OBJS=$(SRC:src/%.c=build/%.o)
+TARGET=sise 
 LIBS=-pthread -lm
 CFLAGS=-Wall -Wextra -Werror -pedantic
+ 
+all: $(TARGET)
 
-all: $(SRC)
-	$(CC) $(CFLAGS) $(SRC) $(LIBS) -o $(BIN) 
+$(TARGET) : $(OBJS)
+	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
+
+build/%.o: src/%.c
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean: 
+	rm -f build/*
+	rm $(TARGET)
