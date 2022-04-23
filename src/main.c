@@ -28,9 +28,9 @@
 #define MIN_WORKAMOUNT 40
 #define ERRPREFIX_LEN 7
 #define AVSEARCH_WORD_LEN 5
+#define MAXSEARCH_LEN 512
 
-char *searchstr;
-int sstrcnt = 1;
+//#define USE_MULTITHREADED
 
 char *
 sappend(char *base, char *append) {
@@ -84,6 +84,12 @@ is_line_separator(char *line) {
     return (line[0] & line[1] & line[2]) == '-';
 }
 
+typedef struct searchargs {
+    char **words; 
+    char *searchstr;
+    int wordcount;
+} searchsyms;
+
 struct threadargs {
     char *descfname;
     int descffd;
@@ -92,81 +98,39 @@ struct threadargs {
     int endpoint;
     int result;
     pthread_mutex_t *mutex;
+    searchsyms *searchargs;
 };
 
 typedef struct threadargs lookupthread_args;
 
-
-char **getsearch_words(){
-    char **words;
-    char *token;
-    char *searchsdup;
-    char *delim = " ";
-    int sstrlen = strlen(searchstr);
-    sstrcnt = !!sstrlen;
-    bool prevcharisspace = true;
-    searchsdup = strdup(searchstr);
-    
-
-    for (int i = 0; i < sstrlen; i++) {
-        if (isspace(searchstr[i])) {
-            if (!prevcharisspace)
-                sstrcnt++;
-        } else {
-            prevcharisspace = false;
-        }
-    }
-
-    words = (char **)calloc(sstrcnt, sizeof(char *));
-    token = strtok(searchsdup, delim);
-
-    for (int i = 0; token && i < sstrcnt; i++)
-    {
-        words[i] = strdup(token);
-        token = strtok(NULL, delim);
-    }
-
-    free(searchsdup);
-    return words;
-}
-
 int
-searchdescr(FILE *descfile) {
-    char rch;
-    int res = 1;
+searchdescr(FILE *descfile, const searchsyms *sargs) {
     char searchbuf[LINEBUF];
-    char **swords = NULL;
-    int searchlen;
+    char **swords = sargs->words;
     int matched_toks = 0;
+    bool *matched;
 
-    searchlen = strlen(searchstr);
-    if (searchlen <= 0)
-        return 0;
-    
-    if (searchlen > 1) {
-        swords = getsearch_words();
-    }
-
+    matched = (bool *)calloc(sargs->wordcount, sizeof(bool));
     memset(searchbuf, ASCNULL, LINEBUF);
 
-    while ((rch = fgets(searchbuf, LINEBUF, descfile))) {
-        if (searchlen == 1) {
-            if (strstr(searchbuf, searchstr))
-                return 1;
-        } else {
-            for (int i = 0; i < sstrcnt; i++)
-            {
-                if (swords[i]) {
-                    if (strstr(searchbuf, searchstr)) {
-                        matched_toks++;
-                        swords[i] = NULL;
-                    }
+    while (fgets(searchbuf, LINEBUF, descfile)) {
+        for (int i = 0; i < sargs->wordcount; i++) {
+            if (!matched[i]) {
+                if (strstr(searchbuf, swords[i])) {
+                    matched_toks++;
+                    matched[i] = true;
+
+                    if (matched_toks >= sargs->wordcount)
+                        goto cleanup;
                 }
             }
-            
         }
+        memset(searchbuf, ASCNULL, LINEBUF);
     }
-    return matched_toks == sstrcnt;
+
+cleanup:
+    free(matched);
+    return !(matched_toks == sargs->wordcount);
 }
 
 char *
@@ -219,25 +183,25 @@ read_description(char *indexmd, FILE *descfile) {
     return res;
 }
 
-int isdir(struct dirent *dir) {
+int check_isdir(struct dirent *dir) {
     struct stat dst;
+
     if (!dir || !dir->d_name)
-        return 0;
+        return 1;
 
     if (dir->d_name[0] == '.') 
-        return 0;
+        return 1;
 
     switch (dir->d_type)
     {
     case DT_DIR:
-        return 1;
+        return 0;
     case DT_UNKNOWN: 
         if (OK(stat(dir->d_name, &dst)))
-            return S_ISDIR(dst.st_mode);
+            return S_ISDIR(dst.st_mode);  
         
-        return 0;  
-    default:
-        return 0;
+        return 1;
+    default: return 1;
     }
 }
 
@@ -254,15 +218,14 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
 }
 
 int
-lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint, 
-                        int outfd, pthread_mutex_t *fmutex) {
+lookup_entries_args(const char *descfname, int startpoint, int endpoint, int outfd, 
+                       const searchsyms *sargs, pthread_mutex_t *fmutex) {
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
 
     printf("\nStart point: %d", startpoint);
     printf("\nEnd point: %d", endpoint);
-    printf("\ndescfd: %d", descffd);
 
     TRY(rescache = fdopen(outfd, "w")) 
         WITH error("Failed to open result cache file");
@@ -270,9 +233,8 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
         WITH error("Failed to open patch dir");
     
     while ((pdir = readdir(pd)) != NULL) {
-        if (isdir(pdir)) {
+        if (OK(check_isdir(pdir))) {
             char *indexmd = NULL; 
-            int grep, grepst;
             char dch;
 
             append_patchmd(&indexmd, pdir->d_name);
@@ -280,9 +242,8 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
                 WITH error("Failed to open descfile");
             
             if (OK(read_description(indexmd, descfile))) {
-                int searchres;
+                int searchres = searchdescr(descfile, sargs);
 
-                searchres = searchdescr(descfile);
                 lock_if_multithreaded(fmutex);
                 fseek(descfile, 0, SEEK_SET);
 
@@ -308,8 +269,8 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
 
 int 
 lookup_entries(lookupthread_args *args) {
-    return lookup_entries_args(args->descfname, args->descffd, args->startpoint, 
-        args->endpoint, args->outfd, args->mutex);
+    return lookup_entries_args(args->descfname, args->startpoint, args->endpoint, 
+        args->outfd, args->searchargs, args->mutex);
 }
 
 void *
@@ -319,11 +280,75 @@ search_entry(void *thread_args) {
     return NULL;
 }
 
+int searchstr_invalid(char *searchstr, int sstrlen) {
+    if (!searchstr || 
+        *searchstr == '\0' || 
+        sstrlen == 0 || 
+        sstrlen > MAXSEARCH_LEN ||
+        (sstrlen == 1 && isspace(*searchstr)))
+        return 1;
+
+    for (int i = 0; i < sstrlen; i++) {
+        if (!isspace(searchstr[i]))
+            return 0;
+    }
+    return 1;
+}
+
+int
+parse_searchargs(searchsyms *sargs, char *searchstr){
+    char **words;
+    char *searchsdup;
+    int sstrcnt;
+    char *token;
+    int sstrlen;
+    char *delim = " ";
+    bool prevcharisspace = true;
+
+    sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
+    sargs->words = NULL;
+    sargs->searchstr = NULL;
+    sargs->wordcount = 0;
+
+    if (searchstr_invalid(searchstr, sstrlen))
+        return 1;
+
+    sstrcnt = !!sstrlen;
+    searchsdup = strndup(searchstr, sstrlen);
+
+    for (int i = 0; i < sstrlen; i++) {
+        if (isspace(searchstr[i])) {
+            if (!prevcharisspace)
+                sstrcnt++;
+        } else {
+            prevcharisspace = false;
+        }
+    }
+
+    words = (char **)calloc(sstrcnt, sizeof(char *));
+    token = strtok(searchsdup, delim);
+
+    for (int i = 0; token && i < sstrcnt; i++)
+    {
+        words[i] = strdup(token);
+        token = strtok(NULL, delim);
+    }
+
+    sargs->words = words;
+    sargs->searchstr = searchsdup;
+    sargs->wordcount = sstrcnt;
+    return 0;
+}
+
 int
 worth_multithread(int entrycount) {
     printf("\nEntrycount: %d\n", entrycount);
-    //return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
+
+    #ifdef USE_MULTITHREADED
+    return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
+    #else
     return 0;
+    #endif
 }
 
 int
@@ -345,7 +370,7 @@ calc_threadcount(int entrycnt) {
 
 int
 setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt,
-                    int thoutfd, pthread_mutex_t *fmutex) {
+                    int thoutfd, char *searchstr, pthread_mutex_t *fmutex) {
     lookupthread_args *thargs;
     int descffd;
     char descfname[] = DESCFILE;
@@ -368,13 +393,19 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
     thargs->outfd = thoutfd;
     thargs->mutex = fmutex;
 
+    thargs->searchargs = (searchsyms *)malloc(sizeof(searchsyms));
+    if (parse_searchargs(thargs->searchargs, searchstr)) {
+        error("Invalid search string");
+        return 1;
+    }
+
     if (thcount == 1) {
         thargs->startpoint = 0;
         thargs->endpoint = entrycnt;
         return 0;
     }
 
-    if (OK(tid )) {
+    if (OK(tid)) {
         thargs->startpoint = 0;
         if (thcount < OPTTHREAD_COUNT) {
             thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
@@ -401,6 +432,16 @@ cleanup_descfname(lookupthread_args *thargs) {
     free(thargs->descfname);
 }
 
+void 
+cleanup_searchargs(searchsyms *sargs) {
+    free(sargs->searchstr);
+
+    for (int i = 0; i < sargs->wordcount; i++) {
+        free(sargs->words[i]);
+    }
+    free(sargs->words);
+}
+
 void
 cleanup_threadargs(lookupthread_args *thargs) {
     cleanup_descfname(thargs);
@@ -410,9 +451,10 @@ cleanup_threadargs(lookupthread_args *thargs) {
 int
 main(int argc, char **argv) {
     DIR *pd;
+    char *searchstr;
     struct dirent *pdir;
     int tentrycnt = 0;
-    
+
     if (argc < 2) {
         usage();
         return 1;
@@ -450,7 +492,7 @@ main(int argc, char **argv) {
         pthread_mutex_init(&fmutex, NULL);
 
         for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, &fmutex)) {
+            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, searchstr, &fmutex)) {
                 return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
@@ -479,7 +521,7 @@ main(int argc, char **argv) {
         lookupthread_args *thargsp;
         int res = 1;
 
-        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, NULL)) {
+        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchstr, NULL)) {
             return res;
         }
         thargsp = &thargs;
