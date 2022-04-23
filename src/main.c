@@ -11,6 +11,7 @@
 #include <math.h>
 #include <errno.h>
 #include <stdarg.h> 
+#include <ctype.h>
 
 #define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
 #define INDEXMD "/index.md"
@@ -26,27 +27,24 @@
 #define OPTWORK_AMOUNT 80
 #define MIN_WORKAMOUNT 40
 #define ERRPREFIX_LEN 7
+#define AVSEARCH_WORD_LEN 5
 
 char *searchstr;
+int sstrcnt = 1;
 
 char *
-concat(char *base, char *append) {
-    int pdirlen = strlen(base);
+sappend(char *base, char *append) {
+    int baselen = strlen(base);
     int pnamelen = strlen(append);
-    char *buf = (char *)calloc(pdirlen + pnamelen + 1, sizeof(char));
+    char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(char));
 
-    if (!buf)
-        exit(0);
-
-    strcpy(buf, base);
-    strcpy(buf + pdirlen, append);
-    return buf; 
+    return strncat(buf, append, pnamelen);
 }
 
 int
 append_patchmd(char **buf, char *patch) {
-    char *patchmd = concat(patch, INDEXMD);
-    *buf = concat(DWM_PATCHES, patchmd);
+    char *patchmd = sappend(patch, INDEXMD);
+    *buf = sappend(DWM_PATCHES, patchmd);
     free(patchmd);
     return 0;
 }
@@ -73,11 +71,8 @@ empty() {}
 
 #define TRY(EXP) (EXP)
 #define WITH ? empty() : 
-
-void
-eperror() {
-    error(strerror(errno));
-}
+#define EPERROR() error(strerror(errno));
+#define OK(RES) RES == 0
 
 void
 usage() {
@@ -101,6 +96,79 @@ struct threadargs {
 
 typedef struct threadargs lookupthread_args;
 
+
+char **getsearch_words(){
+    char **words;
+    char *token;
+    char *searchsdup;
+    char *delim = " ";
+    int sstrlen = strlen(searchstr);
+    sstrcnt = !!sstrlen;
+    bool prevcharisspace = true;
+    searchsdup = strdup(searchstr);
+    
+
+    for (int i = 0; i < sstrlen; i++) {
+        if (isspace(searchstr[i])) {
+            if (!prevcharisspace)
+                sstrcnt++;
+        } else {
+            prevcharisspace = false;
+        }
+    }
+
+    words = (char **)calloc(sstrcnt, sizeof(char *));
+    token = strtok(searchsdup, delim);
+
+    for (int i = 0; token && i < sstrcnt; i++)
+    {
+        words[i] = strdup(token);
+        token = strtok(NULL, delim);
+    }
+
+    free(searchsdup);
+    return words;
+}
+
+int
+searchdescr(FILE *descfile) {
+    char rch;
+    int res = 1;
+    char searchbuf[LINEBUF];
+    char **swords = NULL;
+    int searchlen;
+    int matched_toks = 0;
+
+    searchlen = strlen(searchstr);
+    if (searchlen <= 0)
+        return 0;
+    
+    if (searchlen > 1) {
+        swords = getsearch_words();
+    }
+
+    memset(searchbuf, ASCNULL, LINEBUF);
+
+    while ((rch = fgets(searchbuf, LINEBUF, descfile))) {
+        if (searchlen == 1) {
+            if (strstr(searchbuf, searchstr))
+                return 1;
+        } else {
+            for (int i = 0; i < sstrcnt; i++)
+            {
+                if (swords[i]) {
+                    if (strstr(searchbuf, searchstr)) {
+                        matched_toks++;
+                        swords[i] = NULL;
+                    }
+                }
+            }
+            
+        }
+    }
+    return matched_toks == sstrcnt;
+}
+
 char *
 tryread_desc(FILE *index, char *buf, bool descrexists) {
     if (descrexists) {
@@ -113,31 +181,29 @@ int
 read_description(char *indexmd, FILE *descfile) {
     FILE *index;
     int res = 1;
-    int descrlen = 0;
     char tempbuf[LINEBUF];
     char linebuf[LINEBUF];
     bool description_exists = false;
 
     index = fopen(indexmd, "r");
-    if (!index) {
+    if (!index)
         return 1;
-    }
 
     memset(linebuf, ASCNULL, LINEBUF);
     memset(tempbuf, ASCNULL, LINEBUF);
 
-    while(tryread_desc(index, linebuf, description_exists)) {
+    for(int descrlen = 0; 
+        tryread_desc(index, linebuf, description_exists) != NULL; 
+        descrlen++) {
         if (description_exists) {
-            if (is_line_separator(linebuf)) {
-                if (descrlen > 1)
-                    break;
+            if (is_line_separator(linebuf) && descrlen > 1) {
+                break;
             } else {
-                if (descrlen > 0) {
+                if (descrlen > 0)
                     fputs(tempbuf, descfile);
-                }
+                
                 memcpy(tempbuf, linebuf, LINEBUF);
             }
-            descrlen++;
         } else {
             description_exists = !strcmp(linebuf, DESCRIPTION_SECTION);
         }
@@ -145,6 +211,7 @@ read_description(char *indexmd, FILE *descfile) {
     }
 
     if (description_exists) {
+        fflush(descfile);
         res = 0;
     }
 
@@ -165,7 +232,7 @@ int isdir(struct dirent *dir) {
     case DT_DIR:
         return 1;
     case DT_UNKNOWN: 
-        if (stat(dir->d_name, &dst) == 0)
+        if (OK(stat(dir->d_name, &dst)))
             return S_ISDIR(dst.st_mode);
         
         return 0;  
@@ -212,21 +279,14 @@ lookup_entries_args(char *descfname, int descffd, int startpoint, int endpoint,
             TRY(descfile = fopen(descfname, "w+")) 
                 WITH error("Failed to open descfile");
             
-            if (read_description(indexmd, descfile) == 0) {
-                grep = fork();
-                fflush(descfile);
+            if (OK(read_description(indexmd, descfile))) {
+                int searchres;
 
-                if (grep == 0) {
-                    int devnull = open(DEVNULL, O_WRONLY);
-                    dup2(devnull, STDOUT_FILENO);
-                    execl(GREP_BIN, GREP_BIN, searchstr, descfname, NULL);
-                }
-
-                wait(&grepst);
+                searchres = searchdescr(descfile);
                 lock_if_multithreaded(fmutex);
                 fseek(descfile, 0, SEEK_SET);
 
-                if (grepst == 0) {
+                if (OK(searchres)) {
                     fprintf(rescache, "\n%s:\n", pdir->d_name);
                     while((dch = fgetc(descfile)) != EOF) {
                         fputc(dch, rescache);
@@ -299,7 +359,7 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
     descffd = mkstemp(descfname);
     
     if (descffd == -1) {
-        eperror();
+        EPERROR();
         return 1;
     }
 
@@ -314,7 +374,7 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
         return 0;
     }
 
-    if (tid == 0) {
+    if (OK(tid )) {
         thargs->startpoint = 0;
         if (thcount < OPTTHREAD_COUNT) {
             thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
@@ -378,7 +438,7 @@ main(int argc, char **argv) {
 
         rescachefd = mkstemp(rescachename);
         if (rescachefd == -1) {
-            eperror();
+            EPERROR();
             return res;
         }
         
