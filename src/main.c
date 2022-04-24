@@ -38,6 +38,7 @@ sappend(char *base, char *append) {
     int pnamelen = strlen(append);
     char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(char));
 
+    strncpy(buf, base, baselen);
     return strncat(buf, append, pnamelen);
 }
 
@@ -66,7 +67,7 @@ error(const char* err_format, ...) {
     va_end(args);
 }
 
-void
+void 
 empty() {}
 
 #define TRY(EXP) (EXP)
@@ -103,11 +104,21 @@ struct threadargs {
 
 typedef struct threadargs lookupthread_args;
 
+int 
+matched_all(bool *is_matched, int wordcount) {
+    for (int i = 0; i < wordcount; i++) {
+        if (!is_matched[i])
+            return 1;
+    }
+    return 0;
+}
+
 int
 searchdescr(FILE *descfile, const searchsyms *sargs) {
     char searchbuf[LINEBUF];
     char **swords = sargs->words;
     int matched_toks = 0;
+    int res = 0;
     bool *matched;
 
     matched = (bool *)calloc(sargs->wordcount, sizeof(bool));
@@ -129,8 +140,9 @@ searchdescr(FILE *descfile, const searchsyms *sargs) {
     }
 
 cleanup:
+    res = matched_all(matched, sargs->wordcount);
     free(matched);
-    return !(matched_toks == sargs->wordcount);
+    return res;
 }
 
 char *
@@ -157,17 +169,18 @@ read_description(char *indexmd, FILE *descfile) {
     memset(tempbuf, ASCNULL, LINEBUF);
 
     for(int descrlen = 0; 
-        tryread_desc(index, linebuf, description_exists) != NULL; 
-        descrlen++) {
+        tryread_desc(index, linebuf, description_exists) != NULL;) {
         if (description_exists) {
-            if (is_line_separator(linebuf) && descrlen > 1) {
-                break;
+            if (is_line_separator(linebuf)) {
+                if (descrlen > 1)
+                    break;
             } else {
                 if (descrlen > 0)
                     fputs(tempbuf, descfile);
                 
                 memcpy(tempbuf, linebuf, LINEBUF);
             }
+            descrlen++;
         } else {
             description_exists = !strcmp(linebuf, DESCRIPTION_SECTION);
         }
@@ -242,11 +255,12 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
                 WITH error("Failed to open descfile");
             
             if (OK(read_description(indexmd, descfile))) {
+                fseek(descfile, 0, SEEK_SET);
                 int searchres = searchdescr(descfile, sargs);
 
                 lock_if_multithreaded(fmutex);
                 fseek(descfile, 0, SEEK_SET);
-
+                
                 if (OK(searchres)) {
                     fprintf(rescache, "\n%s:\n", pdir->d_name);
                     while((dch = fgetc(descfile)) != EOF) {
@@ -295,15 +309,30 @@ int searchstr_invalid(char *searchstr, int sstrlen) {
     return 1;
 }
 
+int 
+getwords_count(char *searchstr, int searchlen) {
+    int symbolscount = !!searchlen;
+    bool prevcharisspace = true;
+
+    for (int i = 0; i < searchlen; i++) {
+        if (isspace(searchstr[i])) {
+            if (!prevcharisspace)
+                symbolscount++;
+        } else {
+            prevcharisspace = false;
+        }
+    }
+    return symbolscount;
+}
+
 int
 parse_searchargs(searchsyms *sargs, char *searchstr){
     char **words;
-    char *searchsdup;
+    char *pubsearchstr, *parsesearchstr;
     int sstrcnt;
     char *token;
     int sstrlen;
-    char *delim = " ";
-    bool prevcharisspace = true;
+    char *delim = " ", *context = NULL;
 
     sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
     sargs->words = NULL;
@@ -313,29 +342,20 @@ parse_searchargs(searchsyms *sargs, char *searchstr){
     if (searchstr_invalid(searchstr, sstrlen))
         return 1;
 
-    sstrcnt = !!sstrlen;
-    searchsdup = strndup(searchstr, sstrlen);
-
-    for (int i = 0; i < sstrlen; i++) {
-        if (isspace(searchstr[i])) {
-            if (!prevcharisspace)
-                sstrcnt++;
-        } else {
-            prevcharisspace = false;
-        }
-    }
+    pubsearchstr = strndup(searchstr, sstrlen);
+    parsesearchstr = strndup(searchstr, sstrlen);
+    sstrcnt = getwords_count(searchstr, sstrlen);
 
     words = (char **)calloc(sstrcnt, sizeof(char *));
-    token = strtok(searchsdup, delim);
+    token = strtok_r(parsesearchstr, delim, &context);
 
-    for (int i = 0; token && i < sstrcnt; i++)
-    {
-        words[i] = strdup(token);
-        token = strtok(NULL, delim);
+    for (int i = 0; token && i < sstrcnt; i++) {
+        words[i] = strndup(token, sstrlen);
+        token = strtok_r(NULL, delim, &context);
     }
 
     sargs->words = words;
-    sargs->searchstr = searchsdup;
+    sargs->searchstr = pubsearchstr;
     sargs->wordcount = sstrcnt;
     return 0;
 }
@@ -445,6 +465,7 @@ cleanup_searchargs(searchsyms *sargs) {
 void
 cleanup_threadargs(lookupthread_args *thargs) {
     cleanup_descfname(thargs);
+    cleanup_searchargs(thargs->searchargs);
     free(thargs);
 }
 
