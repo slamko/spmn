@@ -20,6 +20,7 @@
 #define DESCRIPTION_SECTION_LENGTH 12
 #define GREP_BIN "/bin/grep"
 #define DESCFILE "descfile.XXXXXX"
+#define DESKFILE_LEN 15
 #define RESULTCACHE "result.XXXXXX"
 #define DEVNULL "/dev/null"
 #define ASCNULL '\0'
@@ -36,7 +37,7 @@ char *
 sappend(char *base, char *append) {
     int baselen = strlen(base);
     int pnamelen = strlen(append);
-    char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(char));
+    char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(*buf));
 
     strncpy(buf, base, baselen);
     return strncat(buf, append, pnamelen);
@@ -58,7 +59,7 @@ error(const char* err_format, ...) {
 
     va_start(args, err_format);
     errlen = strlen(err_format);
-    err = calloc(ERRPREFIX_LEN + errlen + 1, sizeof(char));
+    err = calloc(ERRPREFIX_LEN + errlen + 1, sizeof(*err));
     sprintf(err, "error: %s", err_format);
 
     vfprintf(stderr, err, args);
@@ -121,7 +122,7 @@ searchdescr(FILE *descfile, const searchsyms *sargs) {
     int res = 0;
     bool *matched;
 
-    matched = (bool *)calloc(sargs->wordcount, sizeof(bool));
+    matched = (bool *)calloc(sargs->wordcount, sizeof(*matched));
     memset(searchbuf, ASCNULL, LINEBUF);
 
     while (fgets(searchbuf, LINEBUF, descfile)) {
@@ -346,7 +347,7 @@ parse_searchargs(searchsyms *sargs, char *searchstr){
     parsesearchstr = strndup(searchstr, sstrlen);
     sstrcnt = getwords_count(searchstr, sstrlen);
 
-    words = (char **)calloc(sstrcnt, sizeof(char *));
+    words = (char **)calloc(sstrcnt, sizeof(token));
     token = strtok_r(parsesearchstr, delim, &context);
 
     for (int i = 0; token && i < sstrcnt; i++) {
@@ -408,12 +409,12 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
         return 1;
     }
 
-    thargs->descfname = strdup(descfname);
+    thargs->descfname = strndup(descfname, DESKFILE_LEN);
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
     thargs->mutex = fmutex;
 
-    thargs->searchargs = (searchsyms *)malloc(sizeof(searchsyms));
+    thargs->searchargs = (searchsyms *)malloc(sizeof(*thargs->searchargs));
     if (parse_searchargs(thargs->searchargs, searchstr)) {
         error("Invalid search string");
         return 1;
@@ -506,9 +507,9 @@ main(int argc, char **argv) {
         }
         
         thcount = calc_threadcount(tentrycnt);
-        thpoolsize = sizeof(pthread_t) * thcount;
+        thpoolsize = sizeof(*threadpool) * thcount;
         threadpool = malloc(thpoolsize);
-        thargs = malloc(sizeof(lookupthread_args) * thcount);
+        thargs = malloc(sizeof(*thargs) * thcount);
         memset(threadpool, 0, thpoolsize);
         pthread_mutex_init(&fmutex, NULL);
 

@@ -17,5 +17,5 @@ $(BUILDD)/%.o: $(SRCD)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean: 
-	rm -f build/*
-	rm $(TARGET)
+	$(RM) -r build/*
+	$(RM) $(TARGET)
