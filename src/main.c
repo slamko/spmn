@@ -14,7 +14,18 @@
 #include <ctype.h>
 
 #define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
+#define BASEREPO "/usr/local/src/sites/"
+#define PATCHESDIR ".suckless.org/patches/"
+#define PATCHESP "/patches/"
+#define DWM "dwm"
+#define ST "st"
+#define SURF "surf"
+#define DWM_PATCHESDIR "dwm.suckless.org/patches/"
+#define ST_PATCHESDIR "st.suckless.org/patches/"
+#define SURF_PATCHESDIR "surf.suckless.org/patches/"
+#define TOOLSDIR "tools.suckless.org/"
 #define INDEXMD "/index.md"
+
 #define LINEBUF 4096
 #define DESCRIPTION_SECTION "Description" 
 #define DESCRIPTION_SECTION_LENGTH 12
@@ -24,12 +35,16 @@
 #define RESULTCACHE "result.XXXXXX"
 #define DEVNULL "/dev/null"
 #define ASCNULL '\0'
+
 #define OPTTHREAD_COUNT 4
 #define OPTWORK_AMOUNT 80
 #define MIN_WORKAMOUNT 40
 #define ERRPREFIX_LEN 7
 #define AVSEARCH_WORD_LEN 5
 #define MAXSEARCH_LEN 512
+#define ENTRYLEN 256
+#define TOOLNAME_ARGPOS 1
+#define KEYWORD_ARGPOS 2
 
 //#define USE_MULTITHREADED
 
@@ -44,11 +59,11 @@ sappend(char *base, char *append) {
 }
 
 int
-append_patchmd(char **buf, char *patch) {
+append_patchmd(char **buf, char *patchdir, char *patch) {
     char *patchmd = sappend(patch, INDEXMD);
-    *buf = sappend(DWM_PATCHES, patchmd);
+    *buf = sappend(patchdir, patchmd);
     free(patchmd);
-    return 0;
+    return !*buf;
 }
 
 void 
@@ -77,8 +92,8 @@ empty() {}
 #define OK(RES) RES == 0
 
 void
-usage() {
-    printf("usage\n");
+print_usage() {
+    printf("usage: sise <tool> <keywords>\n");
 }
 
 int 
@@ -99,6 +114,7 @@ struct threadargs {
     int startpoint;
     int endpoint;
     int result;
+    char *patchdir;
     pthread_mutex_t *mutex;
     searchsyms *searchargs;
 };
@@ -114,29 +130,37 @@ matched_all(bool *is_matched, int wordcount) {
     return 0;
 }
 
+int 
+iter_search_words(char *searchbuf, bool *matched, const searchsyms *sargs) {
+    for (int i = 0; i < sargs->wordcount; i++) {
+        if (!matched[i]) {
+            if (strstr(searchbuf, sargs->words[i])) {
+                matched[i] = true;
+
+                if (OK(matched_all(matched, sargs->wordcount)))
+                    return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 int
-searchdescr(FILE *descfile, const searchsyms *sargs) {
+searchdescr(FILE *descfile, char *toolname, const searchsyms *sargs) {
     char searchbuf[LINEBUF];
-    char **swords = sargs->words;
-    int matched_toks = 0;
     int res = 0;
-    bool *matched;
+    bool *matched = NULL;
 
     matched = (bool *)calloc(sargs->wordcount, sizeof(*matched));
+    if (iter_search_words(toolname, matched, sargs))
+        goto cleanup;
+
     memset(searchbuf, ASCNULL, LINEBUF);
 
     while (fgets(searchbuf, LINEBUF, descfile)) {
-        for (int i = 0; i < sargs->wordcount; i++) {
-            if (!matched[i]) {
-                if (strstr(searchbuf, swords[i])) {
-                    matched_toks++;
-                    matched[i] = true;
+        if (iter_search_words(searchbuf, matched, sargs))
+            goto cleanup;
 
-                    if (matched_toks >= sargs->wordcount)
-                        goto cleanup;
-                }
-            }
-        }
         memset(searchbuf, ASCNULL, LINEBUF);
     }
 
@@ -233,7 +257,7 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
 
 int
 lookup_entries_args(const char *descfname, int startpoint, int endpoint, int outfd, 
-                       const searchsyms *sargs, pthread_mutex_t *fmutex) {
+                       char *patchdir, const searchsyms *sargs, pthread_mutex_t *fmutex) {
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
@@ -243,7 +267,7 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
 
     TRY(rescache = fdopen(outfd, "w")) 
         WITH error("Failed to open result cache file");
-    TRY(pd = opendir(DWM_PATCHES)) 
+    TRY(pd = opendir(patchdir)) 
         WITH error("Failed to open patch dir");
     
     while ((pdir = readdir(pd)) != NULL) {
@@ -251,13 +275,15 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
             char *indexmd = NULL; 
             char dch;
 
-            append_patchmd(&indexmd, pdir->d_name);
+            if (append_patchmd(&indexmd, patchdir, pdir->d_name)) 
+                error("Internal error");
+
             TRY(descfile = fopen(descfname, "w+")) 
                 WITH error("Failed to open descfile");
             
             if (OK(read_description(indexmd, descfile))) {
                 fseek(descfile, 0, SEEK_SET);
-                int searchres = searchdescr(descfile, sargs);
+                int searchres = searchdescr(descfile, pdir->d_name, sargs);
 
                 lock_if_multithreaded(fmutex);
                 fseek(descfile, 0, SEEK_SET);
@@ -285,7 +311,7 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
 int 
 lookup_entries(lookupthread_args *args) {
     return lookup_entries_args(args->descfname, args->startpoint, args->endpoint, 
-        args->outfd, args->searchargs, args->mutex);
+        args->outfd, args->patchdir, args->searchargs, args->mutex);
 }
 
 void *
@@ -389,50 +415,17 @@ calc_threadcount(int entrycnt) {
     }
 }
 
-int
-setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt,
-                    int thoutfd, char *searchstr, pthread_mutex_t *fmutex) {
-    lookupthread_args *thargs;
-    int descffd;
-    char descfname[] = DESCFILE;
+void 
+assign_thread_bounds(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt) {
+    lookupthread_args *thargs = threadargpool + tid;
 
-    if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
-        error("Internal exception");
-        return 1;
-    }
-
-    thargs = threadargpool + tid;
-    descffd = mkstemp(descfname);
-    
-    if (descffd == -1) {
-        EPERROR();
-        return 1;
-    }
-
-    thargs->descfname = strndup(descfname, DESKFILE_LEN);
-    thargs->descffd = descffd;
-    thargs->outfd = thoutfd;
-    thargs->mutex = fmutex;
-
-    thargs->searchargs = (searchsyms *)malloc(sizeof(*thargs->searchargs));
-    if (parse_searchargs(thargs->searchargs, searchstr)) {
-        error("Invalid search string");
-        return 1;
-    }
-
-    if (thcount == 1) {
-        thargs->startpoint = 0;
-        thargs->endpoint = entrycnt;
-        return 0;
-    }
-
-    if (OK(tid)) {
+    if (tid == 0) {
         thargs->startpoint = 0;
         if (thcount < OPTTHREAD_COUNT) {
             thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
         } else {
             double actworkamount = entrycnt / OPTTHREAD_COUNT;
-            int approxstartval = (int)(floor(actworkamount / 100)) + 2;
+            int approxstartval = (int)(floor(actworkamount / 100.0)) + 2;
             thargs->endpoint = thargs->startpoint + approxstartval;
         }
     } else {
@@ -445,12 +438,49 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
             thargs->endpoint = (prevthargs->endpoint - prevthargs->startpoint) + thargs->startpoint; 
         }
     }
-    return 0;
+}
+
+int
+setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt,
+                    int thoutfd, searchsyms *searchargs, char *patchdir, pthread_mutex_t *fmutex) {
+    lookupthread_args *thargs;
+    int descffd;
+    char descfname[] = DESCFILE;
+
+    if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
+        error("Internal exception");
+        return EXIT_FAILURE;
+    }
+
+    thargs = threadargpool + tid;
+    descffd = mkstemp(descfname);
+    
+    if (descffd == -1) {
+        EPERROR();
+        return EXIT_FAILURE;
+    }
+
+    thargs->descfname = strndup(descfname, DESKFILE_LEN);
+    thargs->descffd = descffd;
+    thargs->outfd = thoutfd;
+    thargs->mutex = fmutex;
+    thargs->patchdir = patchdir;
+    thargs->searchargs = searchargs;
+
+    if (thcount == 1) {
+        thargs->startpoint = 0;
+        thargs->endpoint = entrycnt;
+        return EXIT_SUCCESS;
+    }
+
+    assign_thread_bounds(threadargpool, tid, thcount, entrycnt);   
+    return EXIT_SUCCESS;
 }
 
 void
 cleanup_descfname(lookupthread_args *thargs) {
     free(thargs->descfname);
+    free(thargs->patchdir);
 }
 
 void 
@@ -470,21 +500,73 @@ cleanup_threadargs(lookupthread_args *thargs) {
     free(thargs);
 }
 
+char *
+searchtool(char *toolname) {
+    DIR *baserepo = NULL;
+    struct dirent *repodir = NULL;
+
+    while ((repodir = readdir(baserepo))) {
+        if (OK(check_isdir(repodir))) {
+            if (OK(strncmp(toolname, repodir->d_name, ENTRYLEN))) {
+                char *tooldirpath = sappend(BASEREPO, TOOLSDIR);
+                char *toolpath = sappend(tooldirpath, repodir->d_name);
+                free(tooldirpath);
+                char *patchdir = sappend(toolpath, PATCHESP);
+                free(toolpath);
+                return patchdir;
+            }
+        } 
+    }
+    
+    closedir(baserepo);
+    return NULL;
+}
+
+int
+get_patchdir(char **patchdir, char *toolname) {
+    if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
+        *patchdir = sappend(BASEREPO, DWM_PATCHESDIR);
+    } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
+        *patchdir = sappend(BASEREPO, ST_PATCHESDIR);
+    } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
+        *patchdir = sappend(BASEREPO, SURF_PATCHESDIR);
+    } else {
+        *patchdir = searchtool(toolname);
+        if (!*patchdir) {
+            error("Suckless tool not found");
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int
 main(int argc, char **argv) {
-    DIR *pd;
-    char *searchstr;
-    struct dirent *pdir;
+    DIR *pd = NULL;
+    char *searchstr = NULL;
+    char *patchdir = NULL;
+    searchsyms *searchargs = NULL;
+    struct dirent *pdir = NULL;
     int tentrycnt = 0;
 
-    if (argc < 2) {
-        usage();
-        return 1;
+    if (argc != 3) {
+        print_usage();
+        return EXIT_FAILURE;
     }
 
-    searchstr = argv[1];
-    pd = opendir(DWM_PATCHES);
+    if (get_patchdir(&patchdir, argv[TOOLNAME_ARGPOS])) {
+        return EXIT_FAILURE;
+    }
 
+    searchargs = (searchsyms *)malloc(sizeof(*searchargs));
+    searchstr = argv[KEYWORD_ARGPOS];
+
+    if (parse_searchargs(searchargs, searchstr)) {
+        error("Invalid search string");
+        return EXIT_FAILURE;
+    }
+
+    pd = opendir(patchdir);
     while ((pdir = readdir(pd)) != NULL) {
         if (pdir->d_type == DT_DIR) 
             tentrycnt++;
@@ -498,7 +580,7 @@ main(int argc, char **argv) {
         FILE *rescache;
         int thcount, thpoolsize, rescachefd;
         char rescachename[] = RESULTCACHE, resc;
-        int res = 1;
+        int res = EXIT_FAILURE;
 
         rescachefd = mkstemp(rescachename);
         if (rescachefd == -1) {
@@ -514,7 +596,7 @@ main(int argc, char **argv) {
         pthread_mutex_init(&fmutex, NULL);
 
         for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, searchstr, &fmutex)) {
+            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, searchargs, patchdir, &fmutex)) {
                 return res;
             }
             pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
@@ -541,9 +623,9 @@ main(int argc, char **argv) {
     } else {
         lookupthread_args thargs;
         lookupthread_args *thargsp;
-        int res = 1;
+        int res = EXIT_FAILURE;
 
-        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchstr, NULL)) {
+        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL)) {
             return res;
         }
         thargsp = &thargs;
@@ -551,8 +633,8 @@ main(int argc, char **argv) {
         lookup_entries(thargsp);
         res = thargsp->result;
         cleanup_descfname(thargsp);
+        cleanup_searchargs(thargsp->searchargs);
         return res;
     }
-
-    return 0;
+    return EXIT_SUCCESS;
 }
