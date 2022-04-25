@@ -1,0 +1,1 @@
+int run_search(int argc, char **argv);

@@ -1,1 +1,1 @@
-# Search for patches on [suckless.org](https://suckless.org/) from the terminal.
+# [Suckless.org](https://suckless.org/) Interactive SEarch

@@ -6,64 +6,31 @@
 #include <stdbool.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <fcntl.h>
 #include <pthread.h>
 #include <math.h>
 #include <errno.h>
 #include <stdarg.h> 
 #include <ctype.h>
+#include <pwd.h>
+#include "def.h"
 
-#define DWM_PATCHES "/usr/local/src/sites/dwm.suckless.org/patches/"
-#define BASEREPO "/usr/local/src/sites/"
-#define PATCHESDIR ".suckless.org/patches/"
-#define PATCHESP "/patches/"
-#define DWM "dwm"
-#define ST "st"
-#define SURF "surf"
-#define DWM_PATCHESDIR "dwm.suckless.org/patches/"
-#define ST_PATCHESDIR "st.suckless.org/patches/"
-#define SURF_PATCHESDIR "surf.suckless.org/patches/"
-#define TOOLSDIR "tools.suckless.org/"
-#define INDEXMD "/index.md"
-
-#define LINEBUF 4096
-#define DESCRIPTION_SECTION "Description" 
-#define DESCRIPTION_SECTION_LENGTH 12
-#define GREP_BIN "/bin/grep"
-#define DESCFILE "descfile.XXXXXX"
-#define DESKFILE_LEN 15
-#define RESULTCACHE "result.XXXXXX"
-#define DEVNULL "/dev/null"
-#define ASCNULL '\0'
-
-#define OPTTHREAD_COUNT 4
-#define OPTWORK_AMOUNT 80
-#define MIN_WORKAMOUNT 40
-#define ERRPREFIX_LEN 7
-#define AVSEARCH_WORD_LEN 5
-#define MAXSEARCH_LEN 512
-#define ENTRYLEN 256
-#define TOOLNAME_ARGPOS 1
-#define KEYWORD_ARGPOS 2
-
-//#define USE_MULTITHREADED
+char *basecacherepo = NULL;
 
 char *
 sappend(char *base, char *append) {
-    int baselen = strlen(base);
-    int pnamelen = strlen(append);
+    size_t baselen = strlen(base);
+    size_t pnamelen = strlen(append);
     char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(*buf));
 
     strncpy(buf, base, baselen);
     return strncat(buf, append, pnamelen);
 }
 
-int
-append_patchmd(char **buf, char *patchdir, char *patch) {
-    char *patchmd = sappend(patch, INDEXMD);
-    *buf = sappend(patchdir, patchmd);
-    free(patchmd);
-    return !*buf;
+char *
+bufappend(char *buf, char *append) {
+    return strncat(buf, append, PATHBUF);
 }
 
 void 
@@ -83,143 +50,42 @@ error(const char* err_format, ...) {
     va_end(args);
 }
 
-void 
-empty() {}
-
-#define TRY(EXP) (EXP)
-#define WITH ? empty() : 
-#define EPERROR() error(strerror(errno));
-#define OK(RES) RES == 0
-
 void
 print_usage() {
     printf("usage: sise <tool> <keywords>\n");
 }
 
-int 
-is_line_separator(char *line) {
-    return (line[0] & line[1] & line[2]) == '-';
-}
 
-typedef struct searchargs {
-    char **words; 
-    char *searchstr;
-    int wordcount;
-} searchsyms;
+int
+get_repocache(char **cachedirbuf) {
+    char *homedir;
+    struct passwd *pd;
+    size_t homedirplen;
 
-struct threadargs {
-    char *descfname;
-    int descffd;
-    int outfd;
-    int startpoint;
-    int endpoint;
-    int result;
-    char *patchdir;
-    pthread_mutex_t *mutex;
-    searchsyms *searchargs;
-};
+    homedir = getenv("HOME");
+    if (!homedir) {
+        pd = getpwuid(getuid());
 
-typedef struct threadargs lookupthread_args;
-
-int 
-matched_all(bool *is_matched, int wordcount) {
-    for (int i = 0; i < wordcount; i++) {
-        if (!is_matched[i])
+        if (!pd)
             return 1;
-    }
-    return 0;
-}
-
-int 
-iter_search_words(char *searchbuf, bool *matched, const searchsyms *sargs) {
-    for (int i = 0; i < sargs->wordcount; i++) {
-        if (!matched[i]) {
-            if (strstr(searchbuf, sargs->words[i])) {
-                matched[i] = true;
-
-                if (OK(matched_all(matched, sargs->wordcount)))
-                    return 1;
-            }
-        }
-    }
-    return 0;
-}
-
-int
-searchdescr(FILE *descfile, char *toolname, const searchsyms *sargs) {
-    char searchbuf[LINEBUF];
-    int res = 0;
-    bool *matched = NULL;
-
-    matched = (bool *)calloc(sargs->wordcount, sizeof(*matched));
-    if (iter_search_words(toolname, matched, sargs))
-        goto cleanup;
-
-    memset(searchbuf, ASCNULL, LINEBUF);
-
-    while (fgets(searchbuf, LINEBUF, descfile)) {
-        if (iter_search_words(searchbuf, matched, sargs))
-            goto cleanup;
-
-        memset(searchbuf, ASCNULL, LINEBUF);
+        homedir = pd->pw_dir;
     }
 
-cleanup:
-    res = matched_all(matched, sargs->wordcount);
-    free(matched);
-    return res;
-}
+    homedirplen = strnlen(homedir, PATHBUF);
 
-char *
-tryread_desc(FILE *index, char *buf, bool descrexists) {
-    if (descrexists) {
-        return fgets(buf, LINEBUF, index);
-    }
-    return fgets(buf, DESCRIPTION_SECTION_LENGTH, index);
-}
-
-int
-read_description(char *indexmd, FILE *descfile) {
-    FILE *index;
-    int res = 1;
-    char tempbuf[LINEBUF];
-    char linebuf[LINEBUF];
-    bool description_exists = false;
-
-    index = fopen(indexmd, "r");
-    if (!index)
+    *cachedirbuf = (char *)malloc(sizeof(**cachedirbuf) * (PATHBUF + homedirplen));
+    if (!*cachedirbuf)
         return 1;
 
-    memset(linebuf, ASCNULL, LINEBUF);
-    memset(tempbuf, ASCNULL, LINEBUF);
-
-    for(int descrlen = 0; 
-        tryread_desc(index, linebuf, description_exists) != NULL;) {
-        if (description_exists) {
-            if (is_line_separator(linebuf)) {
-                if (descrlen > 1)
-                    break;
-            } else {
-                if (descrlen > 0)
-                    fputs(tempbuf, descfile);
-                
-                memcpy(tempbuf, linebuf, LINEBUF);
-            }
-            descrlen++;
-        } else {
-            description_exists = !strcmp(linebuf, DESCRIPTION_SECTION);
-        }
-        memset(linebuf, ASCNULL, LINEBUF);
+    if (snprintf(*cachedirbuf, PATHBUF, "%s"BASEREPO, homedir) != 1) {
+        memset(*cachedirbuf, ASCNULL, PATHBUF);
+        strncpy(*cachedirbuf, homedir, PATHBUF);
+        strncpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
     }
-
-    if (description_exists) {
-        fflush(descfile);
-        res = 0;
-    }
-
-    fclose(index);
-    return res;
+    return !*cachedirbuf;
 }
+
+
 
 int check_isdir(struct dirent *dir) {
     struct stat dst;
@@ -243,398 +109,60 @@ int check_isdir(struct dirent *dir) {
     }
 }
 
-void 
-lock_if_multithreaded(pthread_mutex_t *mutex) {
-    if (mutex)
-        pthread_mutex_lock(mutex);
-}
-
-void 
-unlock_if_multithreaded(pthread_mutex_t *mutex) {
-    if (mutex)
-        pthread_mutex_unlock(mutex);
-}
-
-int
-lookup_entries_args(const char *descfname, int startpoint, int endpoint, int outfd, 
-                       char *patchdir, const searchsyms *sargs, pthread_mutex_t *fmutex) {
-    DIR *pd;
-    FILE *descfile, *rescache;
-    struct dirent *pdir;
-
-    printf("\nStart point: %d", startpoint);
-    printf("\nEnd point: %d", endpoint);
-
-    TRY(rescache = fdopen(outfd, "w")) 
-        WITH error("Failed to open result cache file");
-    TRY(pd = opendir(patchdir)) 
-        WITH error("Failed to open patch dir");
-    
-    while ((pdir = readdir(pd)) != NULL) {
-        if (OK(check_isdir(pdir))) {
-            char *indexmd = NULL; 
-            char dch;
-
-            if (append_patchmd(&indexmd, patchdir, pdir->d_name)) 
-                error("Internal error");
-
-            TRY(descfile = fopen(descfname, "w+")) 
-                WITH error("Failed to open descfile");
-            
-            if (OK(read_description(indexmd, descfile))) {
-                fseek(descfile, 0, SEEK_SET);
-                int searchres = searchdescr(descfile, pdir->d_name, sargs);
-
-                lock_if_multithreaded(fmutex);
-                fseek(descfile, 0, SEEK_SET);
-                
-                if (OK(searchres)) {
-                    fprintf(rescache, "\n%s:\n", pdir->d_name);
-                    while((dch = fgetc(descfile)) != EOF) {
-                        fputc(dch, rescache);
-                    }
-                }
-
-                unlock_if_multithreaded(fmutex);
-            }
-            free(indexmd);
-            fclose(descfile);
-        }
-    }
-
-    fclose(rescache);
-    closedir(pd);
-    remove(descfname);
-    return 0;
-}
-
-int 
-lookup_entries(lookupthread_args *args) {
-    return lookup_entries_args(args->descfname, args->startpoint, args->endpoint, 
-        args->outfd, args->patchdir, args->searchargs, args->mutex);
-}
-
-void *
-search_entry(void *thread_args) {
-    lookupthread_args *args = (lookupthread_args *)thread_args;
-    args->result = lookup_entries(args);
-    return NULL;
-}
-
-int searchstr_invalid(char *searchstr, int sstrlen) {
-    if (!searchstr || 
-        *searchstr == '\0' || 
-        sstrlen == 0 || 
-        sstrlen > MAXSEARCH_LEN ||
-        (sstrlen == 1 && isspace(*searchstr)))
-        return 1;
-
-    for (int i = 0; i < sstrlen; i++) {
-        if (!isspace(searchstr[i]))
-            return 0;
-    }
-    return 1;
-}
-
-int 
-getwords_count(char *searchstr, int searchlen) {
-    int symbolscount = !!searchlen;
-    bool prevcharisspace = true;
-
-    for (int i = 0; i < searchlen; i++) {
-        if (isspace(searchstr[i])) {
-            if (!prevcharisspace)
-                symbolscount++;
-        } else {
-            prevcharisspace = false;
-        }
-    }
-    return symbolscount;
-}
-
-int
-parse_searchargs(searchsyms *sargs, char *searchstr){
-    char **words;
-    char *pubsearchstr, *parsesearchstr;
-    int sstrcnt;
-    char *token;
-    int sstrlen;
-    char *delim = " ", *context = NULL;
-
-    sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
-    sargs->words = NULL;
-    sargs->searchstr = NULL;
-    sargs->wordcount = 0;
-
-    if (searchstr_invalid(searchstr, sstrlen))
-        return 1;
-
-    pubsearchstr = strndup(searchstr, sstrlen);
-    parsesearchstr = strndup(searchstr, sstrlen);
-    sstrcnt = getwords_count(searchstr, sstrlen);
-
-    words = (char **)calloc(sstrcnt, sizeof(token));
-    token = strtok_r(parsesearchstr, delim, &context);
-
-    for (int i = 0; token && i < sstrcnt; i++) {
-        words[i] = strndup(token, sstrlen);
-        token = strtok_r(NULL, delim, &context);
-    }
-
-    sargs->words = words;
-    sargs->searchstr = pubsearchstr;
-    sargs->wordcount = sstrcnt;
-    return 0;
-}
-
-int
-worth_multithread(int entrycount) {
-    printf("\nEntrycount: %d\n", entrycount);
-
-    #ifdef USE_MULTITHREADED
-    return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
-    #else
-    return 0;
-    #endif
-}
-
-int
-calc_threadcount(int entrycnt) {
-    int optentrycnt = OPTWORK_AMOUNT * OPTTHREAD_COUNT;
-    if (entrycnt > optentrycnt) {
-        return OPTTHREAD_COUNT;
-    } else {
-        float actualthrcount = entrycnt / OPTWORK_AMOUNT;
-        int nearest_thrcount = floor((double)actualthrcount);
-        int workdiff = (actualthrcount * 100) - (nearest_thrcount * 100);
-        
-        if (workdiff < MIN_WORKAMOUNT)
-            return nearest_thrcount;
-
-        return nearest_thrcount + 1;
-    }
-}
-
-void 
-assign_thread_bounds(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt) {
-    lookupthread_args *thargs = threadargpool + tid;
-
-    if (tid == 0) {
-        thargs->startpoint = 0;
-        if (thcount < OPTTHREAD_COUNT) {
-            thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
-        } else {
-            double actworkamount = entrycnt / OPTTHREAD_COUNT;
-            int approxstartval = (int)(floor(actworkamount / 100.0)) + 2;
-            thargs->endpoint = thargs->startpoint + approxstartval;
-        }
-    } else {
-        lookupthread_args *prevthargs = threadargpool + (tid - 1);
-        thargs->startpoint = prevthargs->endpoint;
-
-        if (tid == thcount - 1) {
-            thargs->endpoint = entrycnt;
-        } else {
-            thargs->endpoint = (prevthargs->endpoint - prevthargs->startpoint) + thargs->startpoint; 
-        }
-    }
-}
-
-int
-setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int entrycnt,
-                    int thoutfd, searchsyms *searchargs, char *patchdir, pthread_mutex_t *fmutex) {
-    lookupthread_args *thargs;
-    int descffd;
-    char descfname[] = DESCFILE;
-
-    if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
-        error("Internal exception");
-        return EXIT_FAILURE;
-    }
-
-    thargs = threadargpool + tid;
-    descffd = mkstemp(descfname);
-    
-    if (descffd == -1) {
-        EPERROR();
-        return EXIT_FAILURE;
-    }
-
-    thargs->descfname = strndup(descfname, DESKFILE_LEN);
-    thargs->descffd = descffd;
-    thargs->outfd = thoutfd;
-    thargs->mutex = fmutex;
-    thargs->patchdir = patchdir;
-    thargs->searchargs = searchargs;
-
-    if (thcount == 1) {
-        thargs->startpoint = 0;
-        thargs->endpoint = entrycnt;
-        return EXIT_SUCCESS;
-    }
-
-    assign_thread_bounds(threadargpool, tid, thcount, entrycnt);   
-    return EXIT_SUCCESS;
-}
-
-void
-cleanup_descfname(lookupthread_args *thargs) {
-    free(thargs->descfname);
-    free(thargs->patchdir);
-}
-
-void 
-cleanup_searchargs(searchsyms *sargs) {
-    free(sargs->searchstr);
-
-    for (int i = 0; i < sargs->wordcount; i++) {
-        free(sargs->words[i]);
-    }
-    free(sargs->words);
-}
-
-void
-cleanup_threadargs(lookupthread_args *thargs) {
-    cleanup_descfname(thargs);
-    cleanup_searchargs(thargs->searchargs);
-    free(thargs);
-}
-
 char *
-searchtool(char *toolname) {
-    DIR *baserepo = NULL;
-    struct dirent *repodir = NULL;
+searchtool(char *baserepodir, char *toolname) {
+    DIR *toolsdir = NULL;
+    struct dirent *tdir = NULL;
+    char *toolsdirpath;
 
-    while ((repodir = readdir(baserepo))) {
-        if (OK(check_isdir(repodir))) {
-            if (OK(strncmp(toolname, repodir->d_name, ENTRYLEN))) {
-                char *tooldirpath = sappend(BASEREPO, TOOLSDIR);
-                char *toolpath = sappend(tooldirpath, repodir->d_name);
-                free(tooldirpath);
-                char *patchdir = sappend(toolpath, PATCHESP);
-                free(toolpath);
-                return patchdir;
+    toolsdirpath = bufappend(baserepodir, TOOLSDIR);
+    toolsdir = opendir(toolsdirpath);
+    while ((tdir = readdir(toolsdir))) {
+        if (OK(check_isdir(tdir))) {
+            if (OK(strncmp(toolname, tdir->d_name, ENTRYLEN))) {
+                return bufappend(toolsdirpath, toolname);
             }
         } 
     }
     
-    closedir(baserepo);
+    closedir(toolsdir);
     return NULL;
 }
 
 int
-get_patchdir(char **patchdir, char *toolname) {
+get_patchdir(char *basecacherepo, char **patchdir, char *toolname) {
     if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        *patchdir = sappend(BASEREPO, DWM_PATCHESDIR);
+        *patchdir = bufappend(basecacherepo, DWM_PATCHESDIR);
     } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        *patchdir = sappend(BASEREPO, ST_PATCHESDIR);
+        *patchdir = bufappend(basecacherepo, ST_PATCHESDIR);
     } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        *patchdir = sappend(BASEREPO, SURF_PATCHESDIR);
+        *patchdir = bufappend(basecacherepo, SURF_PATCHESDIR);
     } else {
-        *patchdir = searchtool(toolname);
+        *patchdir = searchtool(basecacherepo, toolname);
         if (!*patchdir) {
             error("Suckless tool not found");
             return 1;
         }
-    }
-    return 0;
+    }   
+
+    return !*patchdir;
 }
 
 int
-main(int argc, char **argv) {
-    DIR *pd = NULL;
-    char *searchstr = NULL;
-    char *patchdir = NULL;
-    searchsyms *searchargs = NULL;
-    struct dirent *pdir = NULL;
-    int tentrycnt = 0;
-
+parse_args(int argc, char **argv) {
     if (argc != 3) {
         print_usage();
         return EXIT_FAILURE;
     }
+}
 
-    if (get_patchdir(&patchdir, argv[TOOLNAME_ARGPOS])) {
-        return EXIT_FAILURE;
-    }
+int
+main(int argc, char **argv) {
+    if (parse_args(argc, argv))
+        return 1;
 
-    searchargs = (searchsyms *)malloc(sizeof(*searchargs));
-    searchstr = argv[KEYWORD_ARGPOS];
-
-    if (parse_searchargs(searchargs, searchstr)) {
-        error("Invalid search string");
-        return EXIT_FAILURE;
-    }
-
-    pd = opendir(patchdir);
-    while ((pdir = readdir(pd)) != NULL) {
-        if (pdir->d_type == DT_DIR) 
-            tentrycnt++;
-    }
-    closedir(pd);
-
-    if (worth_multithread(tentrycnt)) {
-        pthread_t *threadpool;
-        pthread_mutex_t fmutex;
-        lookupthread_args *thargs;
-        FILE *rescache;
-        int thcount, thpoolsize, rescachefd;
-        char rescachename[] = RESULTCACHE, resc;
-        int res = EXIT_FAILURE;
-
-        rescachefd = mkstemp(rescachename);
-        if (rescachefd == -1) {
-            EPERROR();
-            return res;
-        }
-        
-        thcount = calc_threadcount(tentrycnt);
-        thpoolsize = sizeof(*threadpool) * thcount;
-        threadpool = malloc(thpoolsize);
-        thargs = malloc(sizeof(*thargs) * thcount);
-        memset(threadpool, 0, thpoolsize);
-        pthread_mutex_init(&fmutex, NULL);
-
-        for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, searchargs, patchdir, &fmutex)) {
-                return res;
-            }
-            pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
-        }
-        
-        for (int tid = 0; tid < thcount; tid++) {
-            pthread_join(threadpool[tid], NULL);
-            res |= thargs[tid].result;
-            cleanup_threadargs(thargs + tid);
-        }
-        
-        pthread_mutex_destroy(&fmutex);
-        free(threadpool);
-
-        TRY(rescache = fdopen(rescachefd, "r")) 
-            WITH error("Failed to copy rescache");
-
-        while ((resc = fgetc(rescache)) != EOF) {
-            fputc(resc, stdout);
-        }
-        fclose(rescache);
-        remove(rescachename);
-        return !!res;
-    } else {
-        lookupthread_args thargs;
-        lookupthread_args *thargsp;
-        int res = EXIT_FAILURE;
-
-        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL)) {
-            return res;
-        }
-        thargsp = &thargs;
-
-        lookup_entries(thargsp);
-        res = thargsp->result;
-        cleanup_descfname(thargsp);
-        cleanup_searchargs(thargsp->searchargs);
-        return res;
-    }
+    if (get_repocache(&basecacherepo))
+        return 1;
+    
     return EXIT_SUCCESS;
 }
