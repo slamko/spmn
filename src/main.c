@@ -14,9 +14,21 @@
 #include <stdarg.h> 
 #include <ctype.h>
 #include <pwd.h>
+#include <time.h>
 #include "def.h"
+#include "search.h"
+#include "sync.h"
 
 char *basecacherepo = NULL;
+
+typedef int(*commandp)(int, char **); 
+
+enum command {
+    SYNC = 0,
+    SEARCH = 1,
+    DOWNLOAD = 2,
+    OPEN = 3
+};
 
 char *
 sappend(char *base, char *append) {
@@ -51,10 +63,13 @@ error(const char* err_format, ...) {
 }
 
 void
-print_usage() {
+print_usage(void) {
     printf("usage: sise <tool> <keywords>\n");
 }
 
+void error_nolocalrepo() {
+    error("Can not find cached repo. Try running 'sise sync'");
+}
 
 int
 get_repocache(char **cachedirbuf) {
@@ -85,84 +100,67 @@ get_repocache(char **cachedirbuf) {
     return !*cachedirbuf;
 }
 
+int
+try_sync_caches() {
+    struct stat cache_sb;
+    time_t lastmtime, curtime;
+    struct tm *lmttm, *cttm;
 
-
-int check_isdir(struct dirent *dir) {
-    struct stat dst;
-
-    if (!dir || !dir->d_name)
+    if (stat(basecacherepo, &cache_sb) == -1) {
         return 1;
-
-    if (dir->d_name[0] == '.') 
-        return 1;
-
-    switch (dir->d_type)
-    {
-    case DT_DIR:
-        return 0;
-    case DT_UNKNOWN: 
-        if (OK(stat(dir->d_name, &dst)))
-            return S_ISDIR(dst.st_mode);  
-        
-        return 1;
-    default: return 1;
-    }
-}
-
-char *
-searchtool(char *baserepodir, char *toolname) {
-    DIR *toolsdir = NULL;
-    struct dirent *tdir = NULL;
-    char *toolsdirpath;
-
-    toolsdirpath = bufappend(baserepodir, TOOLSDIR);
-    toolsdir = opendir(toolsdirpath);
-    while ((tdir = readdir(toolsdir))) {
-        if (OK(check_isdir(tdir))) {
-            if (OK(strncmp(toolname, tdir->d_name, ENTRYLEN))) {
-                return bufappend(toolsdirpath, toolname);
-            }
-        } 
     }
     
-    closedir(toolsdir);
-    return NULL;
+    lastmtime = cache_sb.st_mtim.tv_sec;
+    time(&curtime);
+    cttm = gmtime(&curtime);
+    lmttm = gmtime(&lastmtime);
+
+    if (cttm->tm_mday - lmttm->tm_mday >= 7 || 
+        cttm->tm_mon > lmttm->tm_mon || 
+        cttm->tm_year > lmttm->tm_year) {
+        return run_sync();
+    }
+    return 0;
 }
 
 int
-get_patchdir(char *basecacherepo, char **patchdir, char *toolname) {
-    if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        *patchdir = bufappend(basecacherepo, DWM_PATCHESDIR);
-    } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        *patchdir = bufappend(basecacherepo, ST_PATCHESDIR);
-    } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        *patchdir = bufappend(basecacherepo, SURF_PATCHESDIR);
+parse_command(int argc, char **argv, enum command *commandarg) {
+    if (argc <= 1)
+        return 1;
+
+    if (OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, CMD_LEN))) {
+        *commandarg = SYNC;   
+    } else if (OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD, CMD_LEN))) {
+        *commandarg = DOWNLOAD;
+    } else if (OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, CMD_LEN))) {
+        *commandarg = OPEN;
     } else {
-        *patchdir = searchtool(basecacherepo, toolname);
-        if (!*patchdir) {
-            error("Suckless tool not found");
-            return 1;
-        }
-    }   
-
-    return !*patchdir;
-}
-
-int
-parse_args(int argc, char **argv) {
-    if (argc != 3) {
-        print_usage();
-        return EXIT_FAILURE;
+        *commandarg = SEARCH;
     }
 }
 
 int
 main(int argc, char **argv) {
-    if (parse_args(argc, argv))
-        return 1;
+    enum command cmd;
+    commandp commands[] = {
+        &parse_sync_args,
+        &parse_search_args
+    };
 
-    if (get_repocache(&basecacherepo))
-        return 1;
-    
-    return EXIT_SUCCESS;
+    if (parse_command(argc, argv, &cmd)) {
+        print_usage();
+        return EXIT_FAILURE;
+    }
+
+    if (get_repocache(&basecacherepo)) {
+        error_nolocalrepo();
+        return EXIT_FAILURE;
+    }
+
+    if (try_sync_caches()) {
+        error("Unexpected error occured, terminating the process...");
+        return EXIT_FAILURE;
+    }
+
+    return commands[(int)cmd](argc, argv);;
 }

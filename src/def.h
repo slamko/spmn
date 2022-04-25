@@ -33,6 +33,13 @@
 #define KEYWORD_ARGPOS 2
 #define PRINTABLE_DESCRIPTION_MAXLEN 5
 
+#define SEARCH_CMD "search"
+#define SYNC_CMD "sync"
+#define DOWNLOAD_CMD "load"
+#define OPEN_CMD "open"
+#define CMD_LEN 8
+#define CMD_ARGPOS 1
+
 //#define USE_MULTITHREADED
 
 void 
