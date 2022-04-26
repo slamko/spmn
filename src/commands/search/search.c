@@ -16,6 +16,7 @@
 #include "search.h"
 #include "deftypes.h"
 #include "pathutils.h"
+#include "logutils.h"
 
 int
 append_patchmd(char **buf, char *patchdir, char *patch) {
@@ -149,7 +150,7 @@ print_matched_entry(const FILE *descfile, const FILE *targetf,
     static int matchedc;
 
     matchedc++;
-    fprintf(targetf, "\n--------------------------------------------------");
+    fprintf(targetf, "\n------------------------------------------------------------");
     fprintf(targetf, "\n%d) %s:\n", matchedc, entryname);
 
     while((dch = fgetc(descfile)) != EOF) {

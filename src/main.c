@@ -16,9 +16,10 @@
 #include <pwd.h>
 #include <time.h>
 #include "def.h"
-#include "runsearch.h"
-#include "sync.h"
+#include "commands/search/runsearch.h"
+#include "commands/sync/sync.h"
 #include "pathutils.h"
+#include "logutils.h"
 
 char *basecacherepo = NULL;
 
@@ -30,36 +31,6 @@ enum command {
     DOWNLOAD = 2,
     OPEN = 3
 };
-
-void 
-error(const char* err_format, ...) {
-    va_list args;
-    int errlen;
-    size_t errmsgsize;
-    char *err = NULL;
-
-    va_start(args, err_format);
-    errlen = strlen(err_format);
-    errmsgsize = ERR_PREFIX_LEN + errlen * sizeof(*err);
-    err = malloc(errmsgsize);
-    memset(err, errmsgsize, ASCNULL);
-    snprintf(err, errmsgsize,  ERR_PREFIX"%s", err_format);
-
-    vfprintf(stderr, err, args);
-    vfprintf(stderr, "\n", args);
-    free(err);
-    va_end(args);
-}
-
-void
-print_usage(void) {
-    printf("usage: sise <tool> <keywords>\n");
-}
-
-void 
-error_nolocalrepo(void) {
-    error("Can not find cached repo. Try running 'sise sync'");
-}
 
 int
 get_repocache(char **cachedirbuf) {
@@ -148,8 +119,7 @@ main(int argc, char **argv) {
     }
 
     if (try_sync_caches()) {
-        error("Unexpected error occured, terminating the process...");
-        return EXIT_FAILURE;
+        error("Failed to autosync caches. Continuing without syncing...");
     }
 
     return commands[(int)cmd](argc, argv);;
