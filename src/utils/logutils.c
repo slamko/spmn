@@ -15,7 +15,7 @@ error(const char* err_format, ...) {
     errlen = strlen(err_format);
     errmsgsize = ERR_PREFIX_LEN + errlen * sizeof(*err);
     err = malloc(errmsgsize);
-    memset(err, errmsgsize, ASCNULL);
+    memset(err, ASCNULL, errmsgsize);
     snprintf(err, errmsgsize,  ERR_PREFIX"%s", err_format);
 
     vfprintf(stderr, err, args);

@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include "deftypes.h"
-#include "pathutils.h"
+#include "utils/pathutils.h"
 #include "utils/logutils.h"
 
 #define GITCMD "/bin/git"

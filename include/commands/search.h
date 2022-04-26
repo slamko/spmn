@@ -20,6 +20,6 @@ struct threadargs {
 
 typedef struct threadargs lookupthread_args;
 
-void *search_entry(const void *thread_args);
+void *search_entry(void *thread_args);
 
 int lookup_entries(const lookupthread_args *args);

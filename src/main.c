@@ -18,8 +18,8 @@
 #include "def.h"
 #include "commands/runsearch.h"
 #include "commands/sync.h"
-#include "pathutils.h"
-#include "logutils.h"
+#include "utils/pathutils.h"
+#include "utils/logutils.h"
 
 char *basecacherepo = NULL;
 
@@ -85,7 +85,7 @@ try_sync_caches(void) {
 }
 
 int
-parse_command(const int argc, const char **argv, enum command *commandarg) {
+parse_command(const int argc, char **argv, enum command *commandarg) {
     if (argc <= 1)
         return 1;
 
@@ -98,6 +98,8 @@ parse_command(const int argc, const char **argv, enum command *commandarg) {
     } else {
         *commandarg = SEARCH;
     }
+
+    return 0;
 }
 
 int

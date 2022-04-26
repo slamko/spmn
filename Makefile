@@ -1,21 +1,45 @@
-CC=gcc -g
-TARGET=sise 
+CC=gcc
+TARGET=sise
 LIBS=-pthread -lm
-CFLAGS=-Wall -Wextra -Werror -pedantic
+WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
+CFLAGS=$(WEFLAGS) -g -Iinclude/
 
 SRCD=src
+HEADERD=include
 BUILDD=build
-SRC=$(wildcard $(SRCD)/*.c)
-OBJS=$(SRC:$(SRCD)/%.c=$(BUILDD)/%.o)
+UTILSD=utils
+CMDD=commands
 
-all: $(TARGET)
+SRCMAIN:=$(wildcard $(SRCD)/*.c)
+SRCUTILS:=$(wildcard $(SRCD)/$(UTILSD)/*.c)
+SRCCOMMANDS:=$(wildcard $(SRCD)/$(CMDD)/*.c)
+SRC=$(SRCMAIN) $(SRCUTILS) $(SRCCOMMANDS)
+
+OBJS=$(SRC:$(SRCD)/%.c=$(BUILDD)/%.o)
+OBJDIRS=$(BUILDD) $(BUILDD)/$(UTILSD) $(BUILDD)/$(CMDD)
+
+HEADERSMAIN:=$(wildcard $(HEADERD)/*.h)
+HEADERSUTILS:=$(SRCUTILS:$(SRCD)/%.c=$(HEADERD)/%.h)
+HEADERSCMD:=$(SRCCOMMANDS:$(SRCD)/%.c=$(HEADERD)/%.h)
+HEADERS=$(HEADERSMAIN) $(HEADERSUTILS) $(HEADERSCMD)
+
+all: $(TARGET) $(OBJDIRS)
 
 $(TARGET) : $(OBJS)
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
-$(BUILDD)/%.o: $(SRCD)/%.c
+$(OBJDIRS):
+	mkdir -p $@
+
+$(BUILDD)/%.o:$(SRCD)/%.c $(HEADERSMAIN)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean: 
-	$(RM) -r build/*
+	$(RM) $(addsuffix /*.o, $(OBJDIRS))
 	$(RM) $(TARGET)

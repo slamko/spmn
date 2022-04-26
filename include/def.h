@@ -43,9 +43,6 @@
 
 //#define USE_MULTITHREADED
 
-void 
-empty() {}
-
 #define TRY(EXP) if (!(EXP)) 
 #define WITH(HANDLE) { HANDLE; return EXIT_FAILURE; }
 #define EPERROR() error(strerror(errno));

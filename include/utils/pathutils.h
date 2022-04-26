@@ -1,9 +1,9 @@
-int check_isdir(struct dirent *dir);
+int check_isdir(const struct dirent *dir);
 
-char *sappend(char *base, char *append);
+char *sappend(const char *base, const char *append);
 
-char *bufappend(char *buf, char *append);
+char *bufappend(char *buf, const char *append);
 
-char *searchtool(char *baserepodir, char *toolname);
+char *searchtool(char *baserepodir, const char *toolname);
 
-int get_patchdir(char *basecacherepo, char **patchdir, char *toolname);
+int get_patchdir(char *basecacherepo, char **patchdir, const char *toolname);

@@ -17,7 +17,6 @@
 #include <time.h>
 #include "def.h"
 #include "search.h"
-#include "sync.h"
 
 int 
 check_isdir(const struct dirent *dir) {

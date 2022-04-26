@@ -13,13 +13,13 @@
 #include <stdarg.h> 
 #include <ctype.h>
 #include <pwd.h>
-#include "search.h"
+#include "commands/search.h"
 #include "deftypes.h"
-#include "pathutils.h"
-#include "logutils.h"
+#include "utils/pathutils.h"
+#include "utils/logutils.h"
 
 int
-append_patchmd(char **buf, char *patchdir, char *patch) {
+append_patchmd(char **buf, const char *patchdir, char *patch) {
     char *patchmd = sappend(patch, INDEXMD);
     *buf = sappend(patchdir, patchmd);
     free(patchmd);
@@ -33,7 +33,7 @@ is_line_separator(const char *line) {
 
 int 
 matched_all(const bool *is_matched, const size_t wordcount) {
-    for (int i = 0; i < wordcount; i++) {
+    for (size_t i = 0; i < wordcount; i++) {
         if (!is_matched[i])
             return 1;
     }
@@ -56,7 +56,7 @@ iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs)
 }
 
 int
-searchdescr(const FILE *descfile, const char *toolname, const searchsyms *sargs) {
+searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     char searchbuf[LINEBUF];
     int res = 0;
     bool *matched = NULL;
@@ -81,7 +81,7 @@ cleanup:
 }
 
 char *
-tryread_desc(const FILE *index, const char *buf, const bool descrexists) {
+tryread_desc(FILE *index, char *buf, const bool descrexists) {
     if (descrexists) {
         return fgets(buf, LINEBUF, index);
     }
@@ -89,7 +89,7 @@ tryread_desc(const FILE *index, const char *buf, const bool descrexists) {
 }
 
 int
-read_description(const FILE *descfile, const char *indexmd) {
+read_description(FILE *descfile, const char *indexmd) {
     FILE *index;
     int res = 1;
     char tempbuf[LINEBUF];
@@ -132,20 +132,19 @@ read_description(const FILE *descfile, const char *indexmd) {
 }
 
 void 
-lock_if_multithreaded(const pthread_mutex_t *mutex) {
+lock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         pthread_mutex_lock(mutex);
 }
 
 void 
-unlock_if_multithreaded(const pthread_mutex_t *mutex) {
+unlock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         pthread_mutex_unlock(mutex);
 }
 
 void 
-print_matched_entry(const FILE *descfile, const FILE *targetf, 
-                    const char *entryname) {
+print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
     char dch;
     static int matchedc;
 
@@ -217,7 +216,7 @@ lookup_entries(const lookupthread_args *args) {
 }
 
 void *
-search_entry(const void *thread_args) {
+search_entry(void *thread_args) {
     lookupthread_args *args = (lookupthread_args *)thread_args;
     args->result = lookup_entries(args);
     return NULL;
