@@ -159,7 +159,7 @@ setup_threadargs(lookupthread_args *threadargpool, int tid, int thcount, int ent
         return EXIT_FAILURE;
     }
 
-    thargs->descfname = strndup(descfname, DESKFILE_LEN);
+    thargs->descfname = strndup(descfname, DESCFILE_LEN);
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
     thargs->mutex = fmutex;
@@ -199,7 +199,63 @@ cleanup_threadargs(lookupthread_args *thargs) {
     free(thargs);
 }
 
-int run_search(char *patchdir, searchsyms *searchargs) {
+int 
+run_multithreaded(const char *patchdir, const searchsyms *searchargs, 
+                const int entrycnt) {
+    pthread_t *threadpool;
+    pthread_mutex_t fmutex;
+    lookupthread_args *thargs;
+    FILE *rescache;
+    int thcount, thpoolsize, rescachefd;
+    char rescachename[] = RESULTCACHE, resc;
+    int res = EXIT_FAILURE;
+
+    rescachefd = mkstemp(rescachename);
+    if (rescachefd == -1) {
+        EPERROR();
+        return res;
+    }
+    
+    thcount = calc_threadcount(entrycnt);
+    thpoolsize = sizeof(*threadpool) * thcount;
+    threadpool = malloc(thpoolsize);
+    thargs = malloc(sizeof(*thargs) * thcount);
+    memset(threadpool, 0, thpoolsize);
+    pthread_mutex_init(&fmutex, NULL);
+
+    for (int tid = 0; tid < thcount; tid++) {
+        if (setup_threadargs(thargs, tid, thcount, entrycnt, rescachefd, 
+                            searchargs, patchdir, &fmutex)) {
+            return res;
+        }
+        pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
+    }
+    
+    for (int tid = 0; tid < thcount; tid++) {
+        pthread_join(threadpool[tid], NULL);
+        res |= thargs[tid].result;
+        cleanup_threadargs(thargs + tid);
+    }
+    
+    pthread_mutex_destroy(&fmutex);
+    free(threadpool);
+    TRY(rescache = fdopen(rescachefd, "r")) 
+    WITH(
+        error("Failed to copy rescache"); 
+        res = 1;
+        goto cleanup)
+
+    while ((resc = fgetc(rescache)) != EOF) {
+        fputc(resc, stdout);
+    }
+
+    cleanup:
+        fclose(rescache);
+        remove(rescachename);
+        return !!res;
+}
+
+int run_search(const char *patchdir, const searchsyms *searchargs) {
     DIR *pd = NULL;
     struct dirent *pdir = NULL;
     int tentrycnt = 0;
@@ -214,57 +270,7 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     closedir(pd);
 
     if (worth_multithread(tentrycnt)) {
-        pthread_t *threadpool;
-        pthread_mutex_t fmutex;
-        lookupthread_args *thargs;
-        FILE *rescache;
-        int thcount, thpoolsize, rescachefd;
-        char rescachename[] = RESULTCACHE, resc;
-        int res = EXIT_FAILURE;
-
-        rescachefd = mkstemp(rescachename);
-        if (rescachefd == -1) {
-            EPERROR();
-            return res;
-        }
-        
-        thcount = calc_threadcount(tentrycnt);
-        thpoolsize = sizeof(*threadpool) * thcount;
-        threadpool = malloc(thpoolsize);
-        thargs = malloc(sizeof(*thargs) * thcount);
-        memset(threadpool, 0, thpoolsize);
-        pthread_mutex_init(&fmutex, NULL);
-
-        for (int tid = 0; tid < thcount; tid++) {
-            if (setup_threadargs(thargs, tid, thcount, tentrycnt, rescachefd, searchargs, patchdir, &fmutex)) {
-                return res;
-            }
-            pthread_create(threadpool + tid, NULL, *search_entry, thargs + tid);
-        }
-        
-        for (int tid = 0; tid < thcount; tid++) {
-            pthread_join(threadpool[tid], NULL);
-            res |= thargs[tid].result;
-            cleanup_threadargs(thargs + tid);
-        }
-        
-        pthread_mutex_destroy(&fmutex);
-        free(threadpool);
-
-        TRY(rescache = fdopen(rescachefd, "r")) 
-        WITH(
-            error("Failed to copy rescache"); 
-            res = 1;
-            goto cleanup)
-
-        while ((resc = fgetc(rescache)) != EOF) {
-            fputc(resc, stdout);
-        }
-
-    cleanup:
-        fclose(rescache);
-        remove(rescachename);
-        return !!res;
+        run_multithreaded(patchdir, searchargs, tentrycnt);
     } else {
         lookupthread_args thargs;
         lookupthread_args *thargsp;
@@ -299,7 +305,7 @@ int parse_search_args(int argc, char **argv) {
         return EXIT_FAILURE;
     }
 
-    searchargs = (searchsyms *)malloc(sizeof(*searchargs));
+    searchargs = malloc(sizeof(*searchargs));
     if (parse_search_symbols(searchargs, argv, argc - startp)) {
         error("Invalid search string");
         return EXIT_FAILURE;

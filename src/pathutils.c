@@ -20,7 +20,7 @@
 #include "sync.h"
 
 int 
-check_isdir(struct dirent *dir) {
+check_isdir(const struct dirent *dir) {
     struct stat dst;
 
     if (!dir || !dir->d_name)
@@ -43,7 +43,22 @@ check_isdir(struct dirent *dir) {
 }
 
 char *
-searchtool(char *baserepodir, char *toolname) {
+sappend(const char *base, const char *append) {
+    size_t baselen = strlen(base);
+    size_t pnamelen = strlen(append);
+    char *buf = calloc(baselen + pnamelen + 1, sizeof(*buf));
+
+    strncpy(buf, base, baselen);
+    return strncat(buf, append, pnamelen);
+}
+
+char *
+bufappend(char *buf, const char *append) {
+    return strncat(buf, append, PATHBUF);
+}
+
+char *
+searchtool(char *baserepodir, const char *toolname) {
     DIR *toolsdir = NULL;
     struct dirent *tdir = NULL;
     char *toolsdirpath;
@@ -63,7 +78,7 @@ searchtool(char *baserepodir, char *toolname) {
 }
 
 int
-get_patchdir(char *basecacherepo, char **patchdir, char *toolname) {
+get_patchdir(char *basecacherepo, char **patchdir, const char *toolname) {
     if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
         *patchdir = bufappend(basecacherepo, DWM_PATCHESDIR);
     } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {

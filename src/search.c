@@ -26,12 +26,12 @@ append_patchmd(char **buf, char *patchdir, char *patch) {
 }
 
 int 
-is_line_separator(char *line) {
+is_line_separator(const char *line) {
     return (line[0] & line[1] & line[2]) == '-';
 }
 
 int 
-matched_all(bool *is_matched, int wordcount) {
+matched_all(const bool *is_matched, const size_t wordcount) {
     for (int i = 0; i < wordcount; i++) {
         if (!is_matched[i])
             return 1;
@@ -40,7 +40,7 @@ matched_all(bool *is_matched, int wordcount) {
 }
 
 int 
-iter_search_words(char *searchbuf, bool *matched, const searchsyms *sargs) {
+iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs) {
     for (int i = 0; i < sargs->wordcount; i++) {
         if (!matched[i]) {
             if (strstr(searchbuf, sargs->words[i])) {
@@ -55,12 +55,12 @@ iter_search_words(char *searchbuf, bool *matched, const searchsyms *sargs) {
 }
 
 int
-searchdescr(FILE *descfile, char *toolname, const searchsyms *sargs) {
+searchdescr(const FILE *descfile, const char *toolname, const searchsyms *sargs) {
     char searchbuf[LINEBUF];
     int res = 0;
     bool *matched = NULL;
 
-    matched = (bool *)calloc(sargs->wordcount, sizeof(*matched));
+    matched = calloc(sargs->wordcount, sizeof(*matched));
     if (iter_search_words(toolname, matched, sargs))
         goto cleanup;
 
@@ -80,7 +80,7 @@ cleanup:
 }
 
 char *
-tryread_desc(FILE *index, char *buf, bool descrexists) {
+tryread_desc(const FILE *index, const char *buf, const bool descrexists) {
     if (descrexists) {
         return fgets(buf, LINEBUF, index);
     }
@@ -88,7 +88,7 @@ tryread_desc(FILE *index, char *buf, bool descrexists) {
 }
 
 int
-read_description(char *indexmd, FILE *descfile) {
+read_description(const FILE *descfile, const char *indexmd) {
     FILE *index;
     int res = 1;
     char tempbuf[LINEBUF];
@@ -131,19 +131,20 @@ read_description(char *indexmd, FILE *descfile) {
 }
 
 void 
-lock_if_multithreaded(pthread_mutex_t *mutex) {
+lock_if_multithreaded(const pthread_mutex_t *mutex) {
     if (mutex)
         pthread_mutex_lock(mutex);
 }
 
 void 
-unlock_if_multithreaded(pthread_mutex_t *mutex) {
+unlock_if_multithreaded(const pthread_mutex_t *mutex) {
     if (mutex)
         pthread_mutex_unlock(mutex);
 }
 
 void 
-print_matched_entry(FILE *descfile, FILE *targetf, char *entryname) {
+print_matched_entry(const FILE *descfile, const FILE *targetf, 
+                    const char *entryname) {
     char dch;
     static int matchedc;
 
@@ -157,8 +158,9 @@ print_matched_entry(FILE *descfile, FILE *targetf, char *entryname) {
 }
 
 int
-lookup_entries_args(const char *descfname, int startpoint, int endpoint, int outfd, 
-                       char *patchdir, const searchsyms *sargs, pthread_mutex_t *fmutex) {
+lookup_entries_args(const char *descfname, const int startpoint, 
+                    const int endpoint, const int outfd, const char *patchdir, 
+                    const searchsyms *sargs, pthread_mutex_t *fmutex) {
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
@@ -183,7 +185,7 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
             TRY(descfile = fopen(descfname, "w+")) 
                 WITH(error("Failed to open descfile"))
             
-            if (OK(read_description(indexmd, descfile))) {
+            if (OK(read_description(descfile, indexmd))) {
                 fseek(descfile, 0, SEEK_SET);
                 int searchres = searchdescr(descfile, pdir->d_name, sargs);
 
@@ -208,13 +210,13 @@ lookup_entries_args(const char *descfname, int startpoint, int endpoint, int out
 }
 
 int 
-lookup_entries(lookupthread_args *args) {
+lookup_entries(const lookupthread_args *args) {
     return lookup_entries_args(args->descfname, args->startpoint, args->endpoint, 
         args->outfd, args->patchdir, args->searchargs, args->mutex);
 }
 
 void *
-search_entry(void *thread_args) {
+search_entry(const void *thread_args) {
     lookupthread_args *args = (lookupthread_args *)thread_args;
     args->result = lookup_entries(args);
     return NULL;

@@ -14,10 +14,10 @@
 #define LINEBUF 4096
 #define PATHBUF LINEBUF
 #define DESCRIPTION_SECTION "Description" 
-#define DESCRIPTION_SECTION_LENGTH 12
+#define DESCRIPTION_SECTION_LENGTH sizeof(DESCRIPTION_SECTION)
 #define GREP_BIN "/bin/grep"
 #define DESCFILE "descfile.XXXXXX"
-#define DESKFILE_LEN 15
+#define DESCFILE_LEN sizeof(DESCFILE)
 #define RESULTCACHE "result.XXXXXX"
 #define DEVNULL "/dev/null"
 #define ASCNULL '\0'
@@ -25,7 +25,8 @@
 #define OPTTHREAD_COUNT 4
 #define OPTWORK_AMOUNT 80
 #define MIN_WORKAMOUNT 40
-#define ERRPREFIX_LEN 7
+#define ERR_PREFIX "error: "
+#define ERR_PREFIX_LEN sizeof(ERR_PREFIX)
 #define AVSEARCH_WORD_LEN 5
 #define MAXSEARCH_LEN 512
 #define ENTRYLEN 256

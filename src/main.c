@@ -16,8 +16,9 @@
 #include <pwd.h>
 #include <time.h>
 #include "def.h"
-#include "search.h"
+#include "runsearch.h"
 #include "sync.h"
+#include "pathutils.h"
 
 char *basecacherepo = NULL;
 
@@ -30,31 +31,19 @@ enum command {
     OPEN = 3
 };
 
-char *
-sappend(char *base, char *append) {
-    size_t baselen = strlen(base);
-    size_t pnamelen = strlen(append);
-    char *buf = (char *)calloc(baselen + pnamelen + 1, sizeof(*buf));
-
-    strncpy(buf, base, baselen);
-    return strncat(buf, append, pnamelen);
-}
-
-char *
-bufappend(char *buf, char *append) {
-    return strncat(buf, append, PATHBUF);
-}
-
 void 
 error(const char* err_format, ...) {
     va_list args;
     int errlen;
-    char *err;
+    size_t errmsgsize;
+    char *err = NULL;
 
     va_start(args, err_format);
     errlen = strlen(err_format);
-    err = calloc(ERRPREFIX_LEN + errlen + 1, sizeof(*err));
-    sprintf(err, "error: %s", err_format);
+    errmsgsize = ERR_PREFIX_LEN + errlen * sizeof(*err);
+    err = malloc(errmsgsize);
+    memset(err, errmsgsize, ASCNULL);
+    snprintf(err, errmsgsize,  ERR_PREFIX"%s", err_format);
 
     vfprintf(stderr, err, args);
     vfprintf(stderr, "\n", args);
@@ -67,7 +56,8 @@ print_usage(void) {
     printf("usage: sise <tool> <keywords>\n");
 }
 
-void error_nolocalrepo() {
+void 
+error_nolocalrepo(void) {
     error("Can not find cached repo. Try running 'sise sync'");
 }
 
@@ -88,7 +78,7 @@ get_repocache(char **cachedirbuf) {
 
     homedirplen = strnlen(homedir, PATHBUF);
 
-    *cachedirbuf = (char *)malloc(sizeof(**cachedirbuf) * (PATHBUF + homedirplen));
+    *cachedirbuf = malloc(sizeof(**cachedirbuf) * (PATHBUF + homedirplen));
     if (!*cachedirbuf)
         return 1;
 
@@ -101,7 +91,7 @@ get_repocache(char **cachedirbuf) {
 }
 
 int
-try_sync_caches() {
+try_sync_caches(void) {
     struct stat cache_sb;
     time_t lastmtime, curtime;
     struct tm *lmttm, *cttm;
@@ -124,7 +114,7 @@ try_sync_caches() {
 }
 
 int
-parse_command(int argc, char **argv, enum command *commandarg) {
+parse_command(const int argc, const char **argv, enum command *commandarg) {
     if (argc <= 1)
         return 1;
 
