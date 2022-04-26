@@ -3,7 +3,7 @@
 typedef struct searchargs {
     char **words; 
     char *searchstr;
-    int wordcount;
+    size_t wordcount;
 } searchsyms;
 
 struct threadargs {

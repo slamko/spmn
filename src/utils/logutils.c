@@ -31,5 +31,5 @@ print_usage(void) {
 
 void 
 error_nolocalrepo(void) {
-    error("Can not find cached repo. Try running 'sise sync'");
+    error("Unable to find base suckless repo. Try running 'sise sync'");
 }

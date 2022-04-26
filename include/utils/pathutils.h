@@ -7,3 +7,5 @@ char *bufappend(char *buf, const char *append);
 char *searchtool(char *baserepodir, const char *toolname);
 
 int get_patchdir(char *basecacherepo, char **patchdir, const char *toolname);
+
+bool check_baserepo_exists(void);

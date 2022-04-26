@@ -63,7 +63,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     sargs->searchstr = NULL;
     sargs->wordcount = 0;
 
-    for (char *searchstr = *sstrings; (uintptr_t)searchstr - (uintptr_t)sstrings < (uintptr_t)scount; searchstr++) {
+    for (char *searchstr = *sstrings; (uintptr_t)searchstr - (uintptr_t)(*sstrings) < (uintptr_t)scount; searchstr++) {
         int sstrcnt, sstrlen;
 
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
@@ -204,7 +204,7 @@ void
 cleanup_searchargs(searchsyms *sargs) {
     free(sargs->searchstr);
 
-    for (int i = 0; i < sargs->wordcount; i++) {
+    for (size_t i = 0; i < sargs->wordcount; i++) {
         free(sargs->words[i]);
     }
     free(sargs->words);
@@ -324,7 +324,8 @@ int parse_search_args(int argc, char **argv) {
     }
 
     searchargs = malloc(sizeof(*searchargs));
-    if (parse_search_symbols(searchargs, argv, argc - startp)) {
+
+    if (parse_search_symbols(searchargs, argv + startp, argc - startp)) {
         error("Invalid search string");
         return EXIT_FAILURE;
     }

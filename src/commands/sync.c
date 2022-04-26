@@ -4,12 +4,16 @@
 #include <dirent.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <stdbool.h>
 #include "deftypes.h"
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
 #define GITCMD "/bin/git"
-#define CLONEARGS "clone" 
+#define CLONE "clone" 
+#define PULL "pull"
+#define QUITEARG "-q"
+#define CHANGEDIR "-C"
 #define SUCKLESSREPO "git://git.suckless.org/sites"
 
 int
@@ -24,8 +28,16 @@ run_sync(void) {
     }
 
     if (gitpid == 0) {
-        if (execl(GITCMD, CLONEARGS, SUCKLESSREPO, basecacherepo, NULL) == -1) {
-            error("Failed to clone git repo");
+        if (!check_baserepo_exists()) {
+            if (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo, (char *)NULL) == -1) {
+                error("Failed to clone git repo");
+                exit(1);
+            }
+        }
+
+        if (execl(GITCMD, GITCMD, CHANGEDIR, basecacherepo, 
+                    PULL, QUITEARG, SUCKLESSREPO, (char *)NULL) == -1) {
+            error("Failed to sync git repositories");
             exit(1);
         }
     } 

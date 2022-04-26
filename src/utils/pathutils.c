@@ -15,7 +15,7 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <time.h>
-#include "def.h"
+#include "deftypes.h"
 #include "search.h"
 
 int 
@@ -92,4 +92,15 @@ get_patchdir(char *basecacherepo, char **patchdir, const char *toolname) {
     }   
 
     return !*patchdir;
+}
+
+bool 
+check_baserepo_exists(void) {
+    struct stat brst;
+
+    if (OK(stat(basecacherepo, &brst))) {
+        return S_ISDIR(brst.st_mode);
+    }
+
+    return false;
 }

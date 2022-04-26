@@ -42,7 +42,7 @@ matched_all(const bool *is_matched, const size_t wordcount) {
 
 int 
 iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs) {
-    for (int i = 0; i < sargs->wordcount; i++) {
+    for (size_t i = 0; i < sargs->wordcount; i++) {
         if (!matched[i]) {
             if (strstr(searchbuf, sargs->words[i])) {
                 matched[i] = true;

@@ -1,0 +1,5 @@
+
+This patch enables colored text in the status bar. It changes the way colors
+are defined in config.h, allowing the user to define multiple color
+combinations for use in their status script.
+

@@ -116,13 +116,19 @@ main(int argc, char **argv) {
     }
 
     if (get_repocache(&basecacherepo)) {
-        error_nolocalrepo();
         return EXIT_FAILURE;
     }
+    
+    if (cmd != SYNC) {
+        if (!check_baserepo_exists()) {
+            error_nolocalrepo();
+            return EXIT_FAILURE;
+        }
 
-    if (try_sync_caches()) {
-        error("Failed to autosync caches. Continuing without syncing...");
+        if (try_sync_caches()) {
+            error("Failed to autosync caches. Continuing without syncing...");
+        }
     }
 
-    return commands[(int)cmd](argc, argv);;
+    return commands[(int)cmd](argc, argv);
 }
