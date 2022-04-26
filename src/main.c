@@ -16,8 +16,8 @@
 #include <pwd.h>
 #include <time.h>
 #include "def.h"
-#include "commands/search/runsearch.h"
-#include "commands/sync/sync.h"
+#include "commands/runsearch.h"
+#include "commands/sync.h"
 #include "pathutils.h"
 #include "logutils.h"
 
