@@ -62,6 +62,9 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     bool *matched = NULL;
 
     matched = calloc(sargs->wordcount, sizeof(*matched));
+    if (!matched)
+        DIE_M()
+
     if (iter_search_words(toolname, matched, sargs))
         goto cleanup;
 
@@ -96,7 +99,7 @@ read_description(FILE *descfile, const char *indexmd) {
 
     index = fopen(indexmd, "r");
     if (!index)
-        return 1;
+        return res;
 
     for(int descrlen = 0; 
         tryread_desc(index, linebuf, description_exists) != NULL;) {
@@ -159,26 +162,32 @@ lookup_entries_args(const char *descfname, const int startpoint,
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
+    int res = 1;
 
     printf("\nStart point: %d", startpoint);
     printf("\nEnd point: %d", endpoint);
 
     TRY(rescache = fdopen(outfd, "w")) 
-        WITH(error("Failed to open result cache file"))
+        WITH(fcache_error())
+
     TRY(pd = opendir(patchdir)) 
-        WITH(error("Failed to open patch dir"))
+    WITH(
+        fcache_error(); 
+        goto cleanuprescache)
     
     while ((pdir = readdir(pd)) != NULL) {
         if (OK(check_isdir(pdir))) {
             char *indexmd = NULL; 
 
-            if (append_patchmd(&indexmd, patchdir, pdir->d_name)) {
-                error("Internal exception");
-                return 1;
-            }
-
             TRY(descfile = fopen(descfname, "w+")) 
-                WITH(error("Failed to open descfile"))
+            WITH(
+                fcache_error(); 
+                goto cleanuppdir)
+
+            if (append_patchmd(&indexmd, patchdir, pdir->d_name)) {
+                perrfatal();
+                goto cleandescfile;
+            }
             
             if (OK(read_description(descfile, indexmd))) {
                 fseek(descfile, 0, SEEK_SET);
@@ -198,10 +207,15 @@ lookup_entries_args(const char *descfname, const int startpoint,
         }
     }
 
-    fclose(rescache);
-    closedir(pd);
+    res = 0;
+
+cleandescfile:
     remove(descfname);
-    return 0;
+cleanuppdir:
+    closedir(pd);
+cleanuprescache:
+    fclose(rescache);
+    return res;
 }
 
 int 

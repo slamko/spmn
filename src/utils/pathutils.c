@@ -16,7 +16,7 @@
 #include <pwd.h>
 #include <time.h>
 #include "deftypes.h"
-#include "search.h"
+#include "utils/logutils.h" 
 
 int 
 check_isdir(const struct dirent *dir) {
@@ -46,6 +46,8 @@ sappend(const char *base, const char *append) {
     size_t baselen = strlen(base);
     size_t pnamelen = strlen(append);
     char *buf = calloc(baselen + pnamelen + 1, sizeof(*buf));
+    if (!buf)
+        DIE_F()
 
     strncpy(buf, base, baselen);
     return strncat(buf, append, pnamelen);
@@ -53,6 +55,9 @@ sappend(const char *base, const char *append) {
 
 char *
 bufappend(char *buf, const char *append) {
+    if (!buf)
+        return buf;
+
     return strncat(buf, append, PATHBUF);
 }
 

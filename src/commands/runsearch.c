@@ -81,18 +81,23 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             lastalloc = sstrcnt * scount;
             words = (char **)calloc(lastalloc, sizeof(*words));
         } else if (tstrcnt > lastalloc) {
-            words = realloc(words, tstrcnt * 2);
+            char **wrealloc = realloc(words, tstrcnt * 2);
+            if (!wrealloc) {
+                free(words);
+                words = NULL;
+            }
         }
 
-        if (!words) {
-            return 1;
-        }
+        if (!words) 
+            DIE_M(goto cleanup);
 
         for (token = strtok_r(parsedsstr, delim, &context);
              token && wid < tstrcnt; wid++) {
             words[wid] = strndup(token, sstrlen);
             token = strtok_r(NULL, delim, &context);
         }
+
+    cleanup:
         context = NULL;
         free(parsedsstr);
     }
@@ -114,7 +119,7 @@ worth_multithread(int entrycount) {
     #endif
 }
 
-int
+size_t
 calc_threadcount(int entrycnt) {
     int optentrycnt = OPTWORK_AMOUNT * OPTTHREAD_COUNT;
     if (entrycnt > optentrycnt) {
@@ -226,7 +231,8 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
     pthread_mutex_t fmutex;
     lookupthread_args *thargs;
     FILE *rescache;
-    int thcount, thpoolsize, rescachefd;
+    int rescachefd;
+    size_t thpoolsize, thcount;
     char rescachename[] = RESULTCACHE, resc;
     int res = EXIT_FAILURE;
 
@@ -238,12 +244,23 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
     
     thcount = calc_threadcount(entrycnt);
     thpoolsize = sizeof(*threadpool) * thcount;
+
     threadpool = malloc(thpoolsize);
+    if (!threadpool) {
+        perrfatal();
+        goto cleanup;
+    }
+
     thargs = malloc(sizeof(*thargs) * thcount);
+    if (!thargs) {
+        perrfatal();
+        goto cleanup;
+    }
+    
     memset(threadpool, 0, thpoolsize);
     pthread_mutex_init(&fmutex, NULL);
 
-    for (int tid = 0; tid < thcount; tid++) {
+    for (size_t tid = 0; tid < thcount; tid++) {
         if (setup_threadargs(thargs, tid, thcount, entrycnt, rescachefd, 
                             searchargs, patchdir, &fmutex)) {
             return res;
@@ -251,7 +268,7 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
         pthread_create(threadpool + tid, NULL, &search_entry, thargs + tid);
     }
     
-    for (int tid = 0; tid < thcount; tid++) {
+    for (size_t tid = 0; tid < thcount; tid++) {
         pthread_join(threadpool[tid], NULL);
         res |= thargs[tid].result;
         cleanup_threadargs(thargs + tid);
@@ -261,7 +278,7 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
     free(threadpool);
     TRY(rescache = fdopen(rescachefd, "r")) 
     WITH(
-        error("Failed to copy rescache"); 
+        fcache_error();
         res = 1;
         goto cleanup)
 
@@ -282,7 +299,7 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     int res;
 
     TRY(pd = opendir(patchdir))
-        WITH(error("Cache directory not found"))
+        WITH(fcache_error())
 
     while ((pdir = readdir(pd)) != NULL) {
         if (pdir->d_type == DT_DIR) 
@@ -328,6 +345,8 @@ int parse_search_args(int argc, char **argv) {
     }
 
     searchargs = malloc(sizeof(*searchargs));
+    if (!searchargs)
+        DIE_M()
 
     if (parse_search_symbols(searchargs, argv + startp, argc - startp)) {
         error("Invalid search string");

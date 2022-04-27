@@ -29,17 +29,13 @@ run_sync(void) {
 
     if (gitpid == 0) {
         if (!check_baserepo_exists()) {
-            if (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo, (char *)NULL) == -1) {
-                error("Failed to clone git repo");
-                exit(1);
-            }
+            if (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo, (char *)NULL) == -1) 
+                DIE_E(error("Failed to clone Suckless repo"))
         }
 
         if (execl(GITCMD, GITCMD, CHANGEDIR, basecacherepo, 
-                    PULL, QUITEARG, SUCKLESSREPO, (char *)NULL) == -1) {
-            error("Failed to sync git repositories");
-            exit(1);
-        }
+                    PULL, QUITEARG, SUCKLESSREPO, (char *)NULL) == -1) 
+            DIE_E(error("Failed to sync with Suckless repo"))
     } 
 
     wait(&gitclonest);

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "deftypes.h"
+#include "utils/logutils.h"
 
 void 
 error(const char* err_format, ...) {
@@ -15,6 +16,9 @@ error(const char* err_format, ...) {
     errlen = strlen(err_format);
     errmsgsize = ERR_PREFIX_LEN + errlen * sizeof(*err);
     err = malloc(errmsgsize);
+    if (!err)
+        DIE_F();
+
     memset(err, ASCNULL, errmsgsize);
     snprintf(err, errmsgsize,  ERR_PREFIX"%s", err_format);
 
@@ -32,4 +36,17 @@ print_usage(void) {
 void 
 error_nolocalrepo(void) {
     error("Unable to find base suckless repo. Try running 'sise sync'");
+}
+
+void fatalerr(const char *err) {
+    fprintf(stderr, err);
+    fprintf(stderr, "\n");
+}
+
+void perrfatal(void) {
+    perror(FATALERR_PREFIX);
+}
+
+void fcache_error(void) {
+    fatalerr("fatal: Cache access error");
 }
