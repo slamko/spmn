@@ -53,7 +53,7 @@ getwords_count(char *searchstr, int searchlen) {
 int
 parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     char **words = NULL;
-    char *pubsearchstr = NULL, *parsesearchstr = NULL, *token = NULL;
+    char *pubsearchstr = NULL, *token = NULL;
     size_t tstrcnt = 0;
     size_t lastalloc = 0, wid = 0;
     char delim[] = " ";
@@ -65,21 +65,21 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     for (int i = 0; i < scount; i++) {
         char *searchstr = sstrings[i];
         int sstrcnt, sstrlen;
-        char *context = NULL;
+        char *context = NULL, *parsedsstr = NULL;
 
-        sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
+        sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
         if (searchstr_invalid(searchstr, sstrlen)) {
             return 1;
         }
 
         pubsearchstr = strndup(searchstr, sstrlen);
-        parsesearchstr = strndup(searchstr, sstrlen);
+        parsedsstr = strndup(searchstr, sstrlen);
         sstrcnt = getwords_count(searchstr, sstrlen);
         tstrcnt += sstrcnt;
 
         if (!words) {
             lastalloc = sstrcnt * scount;
-            words = (char **)calloc(lastalloc, sizeof(*token));
+            words = (char **)calloc(lastalloc, sizeof(*words));
         } else if (tstrcnt > lastalloc) {
             words = realloc(words, tstrcnt * 2);
         }
@@ -88,12 +88,13 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             return 1;
         }
 
-        for (token = strtok_r(parsesearchstr, delim, &context);
+        for (token = strtok_r(parsedsstr, delim, &context);
              token && wid < tstrcnt; wid++) {
             words[wid] = strndup(token, sstrlen);
             token = strtok_r(NULL, delim, &context);
         }
         context = NULL;
+        free(parsedsstr);
     }
 
     sargs->words = words;
@@ -209,6 +210,7 @@ cleanup_searchargs(searchsyms *sargs) {
         free(sargs->words[i]);
     }
     free(sargs->words);
+    free(sargs);
 }
 
 void
@@ -311,7 +313,7 @@ int run_search(char *patchdir, searchsyms *searchargs) {
 int parse_search_args(int argc, char **argv) {
     char *patchdir = NULL;
     searchsyms *searchargs = NULL;
-    size_t startp = 0; 
+    size_t startp = 0, toolname_argpos;
 
     if (OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
         startp = 3;
@@ -319,8 +321,9 @@ int parse_search_args(int argc, char **argv) {
         startp = 2;
     }
 
-    if (get_patchdir(basecacherepo, &patchdir, argv[TOOLNAME_ARGPOS])) {
-        error("Suckless tool with name: '%s' not found", argv[TOOLNAME_ARGPOS]);
+    toolname_argpos = startp - TOOLNAME_ARGPOS;
+    if (get_patchdir(basecacherepo, &patchdir, argv[toolname_argpos])) {
+        error("Suckless tool with name: '%s' not found", argv[toolname_argpos]);
         return EXIT_FAILURE;
     }
 
