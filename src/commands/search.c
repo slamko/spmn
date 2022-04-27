@@ -57,7 +57,7 @@ iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs)
 
 int
 searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
-    char searchbuf[LINEBUF];
+    char searchbuf[LINEBUF] = {0};
     int res = 0;
     bool *matched = NULL;
 
@@ -65,13 +65,11 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     if (iter_search_words(toolname, matched, sargs))
         goto cleanup;
 
-    memset(searchbuf, ASCNULL, LINEBUF);
-
-    while (fgets(searchbuf, LINEBUF, descfile)) {
+    while (fgets(searchbuf, sizeof(searchbuf), descfile)) {
         if (iter_search_words(searchbuf, matched, sargs))
             goto cleanup;
 
-        memset(searchbuf, ASCNULL, LINEBUF);
+        memset(searchbuf, ASCNULL, sizeof(searchbuf));
     }
 
 cleanup:
@@ -92,16 +90,13 @@ int
 read_description(FILE *descfile, const char *indexmd) {
     FILE *index;
     int res = 1;
-    char tempbuf[LINEBUF];
-    char linebuf[LINEBUF];
+    char tempbuf[LINEBUF] = {0};
+    char linebuf[LINEBUF] = {0};
     bool description_exists = false;
 
     index = fopen(indexmd, "r");
     if (!index)
         return 1;
-
-    memset(linebuf, ASCNULL, LINEBUF);
-    memset(tempbuf, ASCNULL, LINEBUF);
 
     for(int descrlen = 0; 
         tryread_desc(index, linebuf, description_exists) != NULL;) {
@@ -113,13 +108,13 @@ read_description(FILE *descfile, const char *indexmd) {
                 if (descrlen > 0)
                     fputs(tempbuf, descfile);
                 
-                memcpy(tempbuf, linebuf, LINEBUF);
+                memcpy(tempbuf, linebuf, sizeof(linebuf));
             }
             descrlen++;
         } else {
             description_exists = !strcmp(linebuf, DESCRIPTION_SECTION);
         }
-        memset(linebuf, ASCNULL, LINEBUF);
+        memset(linebuf, ASCNULL, sizeof(linebuf));
     }
 
     if (description_exists) {

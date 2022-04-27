@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <dirent.h>
 #include <string.h>
+#include <bsd/string.h> 
 #include <stdbool.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -34,8 +35,8 @@ enum command {
 
 int
 get_repocache(char **cachedirbuf) {
-    char *homedir;
-    struct passwd *pd;
+    char *homedir = NULL;
+    struct passwd *pd = NULL;
     size_t homedirplen;
 
     homedir = getenv("HOME");
@@ -49,15 +50,12 @@ get_repocache(char **cachedirbuf) {
 
     homedirplen = strnlen(homedir, PATHBUF);
 
-    *cachedirbuf = malloc(sizeof(**cachedirbuf) * (PATHBUF + homedirplen));
+    *cachedirbuf = calloc(PATHBUF + homedirplen + 1, sizeof(**cachedirbuf));
     if (!*cachedirbuf)
         return 1;
 
-    if (snprintf(*cachedirbuf, PATHBUF, "%s"BASEREPO, homedir) != 1) {
-        memset(*cachedirbuf, ASCNULL, PATHBUF);
-        strncpy(*cachedirbuf, homedir, PATHBUF);
-        strncpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
-    }
+    strlcpy(*cachedirbuf, homedir, PATHBUF);
+    strlcpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
     return !*cachedirbuf;
 }
 
@@ -65,7 +63,7 @@ int
 try_sync_caches(void) {
     struct stat cache_sb;
     time_t lastmtime, curtime;
-    struct tm *lmttm, *cttm;
+    struct tm *lmttm = NULL, *cttm = NULL;
 
     if (stat(basecacherepo, &cache_sb) == -1) {
         return 1;

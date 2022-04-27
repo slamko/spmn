@@ -54,17 +54,18 @@ int
 parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     char **words = NULL;
     char *pubsearchstr = NULL, *parsesearchstr = NULL, *token = NULL;
-    int tstrcnt = 0;
-    size_t lastalloc = 0;
+    size_t tstrcnt = 0;
+    size_t lastalloc = 0, wid = 0;
     char delim[] = " ";
-    char *context = NULL;
 
     sargs->words = NULL;
     sargs->searchstr = NULL;
     sargs->wordcount = 0;
 
-    for (char *searchstr = *sstrings; (uintptr_t)searchstr - (uintptr_t)(*sstrings) < (uintptr_t)scount; searchstr++) {
+    for (int i = 0; i < scount; i++) {
+        char *searchstr = sstrings[i];
         int sstrcnt, sstrlen;
+        char *context = NULL;
 
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
         if (searchstr_invalid(searchstr, sstrlen)) {
@@ -79,7 +80,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
         if (!words) {
             lastalloc = sstrcnt * scount;
             words = (char **)calloc(lastalloc, sizeof(*token));
-        } else if ((size_t)tstrcnt > lastalloc) {
+        } else if (tstrcnt > lastalloc) {
             words = realloc(words, tstrcnt * 2);
         }
 
@@ -87,12 +88,12 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             return 1;
         }
 
-        token = strtok_r(parsesearchstr, delim, &context);
-
-        for (int i = 0; token && i < sstrcnt; i++) {
-            words[i] = strndup(token, sstrlen);
+        for (token = strtok_r(parsesearchstr, delim, &context);
+             token && wid < tstrcnt; wid++) {
+            words[wid] = strndup(token, sstrlen);
             token = strtok_r(NULL, delim, &context);
         }
+        context = NULL;
     }
 
     sargs->words = words;
