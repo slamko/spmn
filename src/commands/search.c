@@ -18,14 +18,6 @@
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
-int
-append_patchmd(char **buf, const char *patchdir, char *patch) {
-    char *patchmd = sappend(patch, INDEXMD);
-    *buf = sappend(patchdir, patchmd);
-    free(patchmd);
-    return !*buf;
-}
-
 int 
 is_line_separator(const char *line) {
     return (line[0] & line[1] & line[2]) == '-';

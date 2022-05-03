@@ -1,5 +1,0 @@
-
-This patch is for those who dedicate each tag to certain general tasks.  Tag 1 might be the tag used for all terminal tasks, tag 2 might be for internet/browser things etc.  When you have these tags already mapped out, generally you open one application more than any other in each tag.  This patch aims at harnessing this workflow for improvement of speed and practicality.
-
-This project is managed and the patch is generated through [this git repo](https://github.com/NlGHT/dwm-default-tag-apps).
-

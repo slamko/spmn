@@ -53,6 +53,22 @@ sappend(const char *base, const char *append) {
     return strncat(buf, append, pnamelen);
 }
 
+result
+spappend(char **bufp, const char *base, const char *append) {
+    size_t baselen = strlen(base);
+    size_t pnamelen = strlen(append);
+    *bufp = calloc(baselen + pnamelen + 1, sizeof(**bufp));
+    if (!bufp)
+        return ERR_SYS;
+
+    strncpy(bufp, base, baselen);
+    strncat(bufp, append, pnamelen);
+    if (!bufp)
+        return ERR_SYS;
+
+    return OK;
+}
+
 char *
 bufappend(char *buf, const char *append) {
     if (!buf)

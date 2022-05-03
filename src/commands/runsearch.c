@@ -18,21 +18,7 @@
 #include "deftypes.h"
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
-
-int searchstr_invalid(char *searchstr, int sstrlen) {
-    if (!searchstr || 
-        *searchstr == '\0' || 
-        sstrlen == 0 || 
-        sstrlen > MAXSEARCH_LEN ||
-        (sstrlen == 1 && isspace(*searchstr)))
-        return 1;
-
-    for (int i = 0; i < sstrlen; i++) {
-        if (!isspace(searchstr[i]))
-            return 0;
-    }
-    return 1;
-}
+#include "utils/entry-utils.h"
 
 int 
 getwords_count(char *searchstr, int searchlen) {
@@ -68,7 +54,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
         char *context = NULL, *parsedsstr = NULL;
 
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
-        if (searchstr_invalid(searchstr, sstrlen)) {
+        if (!entrname_valid(searchstr, sstrlen)) {
             return 1;
         }
 
