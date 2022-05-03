@@ -245,7 +245,7 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
     thcount = calc_threadcount(entrycnt);
     thpoolsize = sizeof(*threadpool) * thcount;
 
-    threadpool = malloc(thpoolsize);
+    threadpool = calloc(1, thpoolsize);
     if (!threadpool) {
         perrfatal();
         goto cleanup;
@@ -257,7 +257,6 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
         goto cleanup;
     }
     
-    memset(threadpool, 0, thpoolsize);
     pthread_mutex_init(&fmutex, NULL);
 
     for (size_t tid = 0; tid < thcount; tid++) {

@@ -19,6 +19,8 @@
 #include "def.h"
 #include "commands/runsearch.h"
 #include "commands/sync.h"
+#include "commands/open.h"
+#include "commands/download.h"
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
@@ -74,9 +76,9 @@ try_sync_caches(void) {
     cttm = gmtime(&curtime);
     lmttm = gmtime(&lastmtime);
 
-    if (cttm->tm_mday - lmttm->tm_mday >= 7 || 
-        cttm->tm_mon > lmttm->tm_mon || 
-        cttm->tm_year > lmttm->tm_year) {
+    if (cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D || 
+        (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) || 
+        (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D)) {
         return run_sync();
     }
     return 0;
@@ -105,7 +107,9 @@ main(int argc, char **argv) {
     enum command cmd;
     commandp commands[] = {
         &parse_sync_args,
-        &parse_search_args
+        &parse_search_args,
+        &parse_open_args,
+        &parse_load_args
     };
 
     if (parse_command(argc, argv, &cmd)) {
