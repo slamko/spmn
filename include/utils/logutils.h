@@ -39,7 +39,20 @@ void fcache_error(void);
 
 #define UNWRAP(EXP) { \
     int res = (EXP); \
-    if (res) return res; }
+    if (res < 0) return ERR_SYS; \
+    else if (res) return res; }
+
+#define UNWRAP_N(EXP) { \
+    int res = (EXP); \
+    if (res < 0) return ERR_SYS; }
+
+#define P_UNWRAP(EXP) { \
+    void *res = (EXP); \
+    if (!res) return ERR_SYS; }
+
+extern void *_pres;
+
+#define UNWRAP_P(EXP) (_pres = EXP) ? _pres : NULL; if (!_pres) return ERR_SYS;
 
 typedef enum {
     OK = 0,

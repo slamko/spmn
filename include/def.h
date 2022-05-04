@@ -44,7 +44,8 @@
 
 //#define USE_MULTITHREADED
 
-#define TRY(EXP) if (!(EXP)) 
+#define TRY(EXP) if (!(EXP))
+#define TRYP(EXP) if (!(EXP))  
 #define WITH(HANDLE) { HANDLE; return EXIT_FAILURE; }
 #define EPERROR() error(strerror(errno));
 #define OK(RES) RES == 0

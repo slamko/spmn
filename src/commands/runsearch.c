@@ -158,19 +158,16 @@ setup_threadargs(lookupthread_args *threadargpool, const int tid,
     char descfname[] = DESCFILE;
 
     if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
-        error("Internal exception");
-        return EXIT_FAILURE;
+        return ERR_LOCAL;
     }
 
     thargs = threadargpool + tid;
     descffd = mkstemp(descfname);
-    
-    if (descffd == -1) {
-        EPERROR();
-        return EXIT_FAILURE;
-    }
+    UNWRAP_N (descffd)
 
     thargs->descfname = strndup(descfname, DESCFILE_LEN);
+    UNWRAP_P (thargs->descfname)
+
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
     thargs->mutex = fmutex;
@@ -180,11 +177,11 @@ setup_threadargs(lookupthread_args *threadargpool, const int tid,
     if (thcount == 1) {
         thargs->startpoint = 0;
         thargs->endpoint = entrycnt;
-        return EXIT_SUCCESS;
+        return OK;
     }
 
     assign_thread_bounds(threadargpool, tid, thcount, entrycnt);   
-    return EXIT_SUCCESS;
+    return OK;
 }
 
 void
@@ -283,25 +280,24 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     int tentrycnt = 0;
     int res;
 
-    TRY(pd = opendir(patchdir))
-        WITH(fcache_error())
+    pd = opendir(patchdir);
+    UNWRAP_P (pd)
 
-    while ((pdir = readdir(pd)) != NULL) {
+    while ((pdir = readdir(pd))) {
         if (pdir->d_type == DT_DIR) 
             tentrycnt++;
     }
-    closedir(pd);
+    UNWRAP (closedir(pd))
 
     if (worth_multithread(tentrycnt)) {
         res = run_multithreaded(patchdir, searchargs, tentrycnt);
     } else {
         lookupthread_args thargs;
-        lookupthread_args *thargsp;
-        int res = EXIT_FAILURE;
+        lookupthread_args *thargsp = NULL;
+        int res = FAIL;
 
-        if (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL)) {
-            return res;
-        }
+        UNWRAP (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL))
+        
         thargsp = &thargs;
 
         lookup_entries(thargsp);

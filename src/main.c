@@ -44,32 +44,28 @@ get_repocache(char **cachedirbuf) {
     homedir = getenv("HOME");
     if (!homedir) {
         pd = getpwuid(getuid());
+        P_UNWRAP (pd)
 
-        if (!pd)
-            return 1;
         homedir = pd->pw_dir;
     }
 
     homedirplen = strnlen(homedir, PATHBUF);
 
     *cachedirbuf = calloc(PATHBUF + homedirplen + 1, sizeof(**cachedirbuf));
-    if (!*cachedirbuf)
-        return 1;
-
+    P_UNWRAP(*cachedirbuf)
+    
     strlcpy(*cachedirbuf, homedir, PATHBUF);
     strlcpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
-    return !*cachedirbuf;
+    return OK;
 }
 
 int
 try_sync_caches(void) {
-    struct stat cache_sb;
+    struct stat cache_sb = {0};
     time_t lastmtime, curtime;
     struct tm *lmttm = NULL, *cttm = NULL;
 
-    if (stat(basecacherepo, &cache_sb) == -1) {
-        return 1;
-    }
+    UNWRAP (stat(basecacherepo, &cache_sb))
     
     lastmtime = cache_sb.st_mtim.tv_sec;
     time(&curtime);
@@ -81,13 +77,13 @@ try_sync_caches(void) {
         (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D)) {
         return run_sync();
     }
-    return 0;
+    return OK;
 }
 
 int
 parse_command(const int argc, char **argv, enum command *commandarg) {
     if (argc <= 1)
-        return 1;
+        return ERR_INVARG;
 
     if (OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, CMD_LEN))) {
         *commandarg = SYNC;   
@@ -99,7 +95,7 @@ parse_command(const int argc, char **argv, enum command *commandarg) {
         *commandarg = SEARCH;
     }
 
-    return 0;
+    return OK;
 }
 
 int

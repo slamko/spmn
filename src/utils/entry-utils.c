@@ -1,6 +1,6 @@
 #include <ctype.h>
 #include "def.h"
-#include "pathutils.h"
+#include "utils/pathutils.h"
 #include "utils/logutils.h"
 
 int

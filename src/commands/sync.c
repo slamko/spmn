@@ -19,27 +19,23 @@
 int
 run_sync(void) {
     int gitpid;
-    int gitclonest = 0;
+    int gitclone_st = 0;
 
     gitpid = fork();
-
-    if (gitpid == -1) {
-        return 1;
-    }
+    UNWRAP_N (gitpid)
 
     if (gitpid == 0) {
         if (!check_baserepo_exists()) {
-            if (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo, (char *)NULL) == -1) 
-                DIE_E(error("Failed to clone Suckless repo"))
+            UNWRAP (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo,
+                        (char *)NULL)) 
         }
 
-        if (execl(GITCMD, GITCMD, CHANGEDIR, basecacherepo, 
-                    PULL, QUITEARG, SUCKLESSREPO, (char *)NULL) == -1) 
-            DIE_E(error("Failed to sync with Suckless repo"))
+        UNWRAP (execl(GITCMD, GITCMD, CHANGEDIR, basecacherepo, PULL, QUITEARG,
+                    SUCKLESSREPO, (char *)NULL))
     } 
 
-    wait(&gitclonest);
-    return gitclonest;
+    UNWRAP_N (wait(&gitclone_st))
+    return gitclone_st;
 }
 
 int
