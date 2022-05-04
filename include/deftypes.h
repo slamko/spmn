@@ -1,3 +1,3 @@
 #include "def.h"
 
-extern char *basecacherepo;
+extern const char *basecacherepo;
