@@ -3,10 +3,15 @@
 #include "def.h"
 
 result 
-openp(const char *toolname, const char *entryname) {
-    int entrnlen = strnlen(entryname, ENTRYLEN);
-    if (entrname_valid(entryname, entrnlen))
-        return ERR_INVARG;
+openp(const char *toolname, const char *patch_name) {
+    int patchn_len = strnlen(patch_name, ENTRYLEN);
+    int toolname_len = strnlen(toolname, ENTRYLEN);
+    
+    if (entrname_valid(patch_name, patchn_len))
+        HANDLE_ERR("Invalid patch name: '%s'", patch_name)
+
+    if (entrname_valid(toolname, toolname_len))
+        HANDLE_ERR("Invalid tool name: '%s'", toolname)
 
     
 }

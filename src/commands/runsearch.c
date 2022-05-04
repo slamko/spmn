@@ -256,7 +256,7 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
         cleanup_threadargs(thargs + tid);
     }
     
-    pthread_mutex_destroy(&fmutex);
+    UNWRAP_L (pthread_mutex_destroy(&fmutex))
     free(threadpool);
     TRY(rescache = fdopen(rescachefd, "r")) 
     WITH(
@@ -288,7 +288,7 @@ int run_search(char *patchdir, searchsyms *searchargs) {
             tentrycnt++;
     }
     UNWRAP (closedir(pd))
-
+    
     if (worth_multithread(tentrycnt)) {
         res = run_multithreaded(patchdir, searchargs, tentrycnt);
     } else {
@@ -311,28 +311,30 @@ int run_search(char *patchdir, searchsyms *searchargs) {
 int parse_search_args(int argc, char **argv) {
     char *patchdir = NULL;
     searchsyms *searchargs = NULL;
-    size_t startp = 0, toolname_argpos;
+    size_t startp = 2, toolname_argpos;
+    result res;
 
     if (OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
-        startp = 3;
-    } else {
-        startp = 2;
+        startp++;
     }
 
     toolname_argpos = startp - TOOLNAME_ARGPOS;
     if (get_patchdir(basecacherepo, &patchdir, argv[toolname_argpos])) {
         error("Suckless tool with name: '%s' not found", argv[toolname_argpos]);
-        return EXIT_FAILURE;
+        return ERR_INVARG;
     }
 
-    searchargs = malloc(sizeof(*searchargs));
-    if (!searchargs)
-        DIE_M()
+    searchargs = calloc(1, sizeof(*searchargs));
+    P_UNWRAP (searchargs)
 
     if (parse_search_symbols(searchargs, argv + startp, argc - startp)) {
         error("Invalid search string");
-        return EXIT_FAILURE;
+        return ERR_INVARG;
     }
 
-    return run_search(patchdir, searchargs);
+    res = run_search(patchdir, searchargs);
+    switch (res) {   
+    default:
+        return res;
+    }
 }
