@@ -17,7 +17,7 @@
 #define SUCKLESSREPO "git://git.suckless.org/sites"
 
 int
-run_sync(void) {
+run_sync(const char *basecacherepo) {
     int gitpid;
     int gitclone_st = 0;
 
@@ -39,6 +39,6 @@ run_sync(void) {
 }
 
 int
-parse_sync_args(int argc, char **argv) {
-    return run_sync();
+parse_sync_args(int argc, char **argv, const char *basecacherepo) {
+    return run_sync(basecacherepo);
 }

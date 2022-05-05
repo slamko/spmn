@@ -15,7 +15,7 @@ append_patchmd(char **buf, const char *patchdir, char *patch) {
 }
 
 int 
-entrname_valid(char *entryname, int enamelen) {
+entrname_valid(const char *entryname, const int enamelen) {
     if (!entryname || 
         *entryname == '\0' || 
         enamelen == 0 || 

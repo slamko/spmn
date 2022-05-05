@@ -166,7 +166,7 @@ setup_threadargs(lookupthread_args *threadargpool, const int tid,
     UNWRAP_N (descffd)
 
     thargs->descfname = strndup(descfname, DESCFILE_LEN);
-    UNWRAP_P (thargs->descfname)
+    P_UNWRAP (thargs->descfname)
 
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
@@ -278,10 +278,10 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     DIR *pd = NULL;
     struct dirent *pdir = NULL;
     int tentrycnt = 0;
-    int res;
+    int res = FAIL;
 
     pd = opendir(patchdir);
-    UNWRAP_P (pd)
+    P_UNWRAP (pd)
 
     while ((pdir = readdir(pd))) {
         if (pdir->d_type == DT_DIR) 
@@ -294,7 +294,6 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     } else {
         lookupthread_args thargs;
         lookupthread_args *thargsp = NULL;
-        int res = FAIL;
 
         UNWRAP (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL))
         
@@ -308,7 +307,7 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     return res;
 }
 
-int parse_search_args(int argc, char **argv) {
+int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     char *patchdir = NULL;
     searchsyms *searchargs = NULL;
     size_t startp = 2, toolname_argpos;
@@ -319,7 +318,7 @@ int parse_search_args(int argc, char **argv) {
     }
 
     toolname_argpos = startp - TOOLNAME_ARGPOS;
-    if ((&patchdir, argv[toolname_argpos])) {
+    if (append_patchdir(&patchdir, argv[toolname_argpos])) {
         error("Suckless tool with name: '%s' not found", argv[toolname_argpos]);
         return ERR_INVARG;
     }

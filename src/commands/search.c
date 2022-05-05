@@ -15,6 +15,7 @@
 #include <pwd.h>
 #include "commands/search.h"
 #include "deftypes.h"
+#include "utils/entry-utils.h"
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 

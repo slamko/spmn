@@ -1,11 +1,9 @@
+#ifndef DEF_TYPES
+#define DEF_TYPES
+
 #include "def.h"
 
-extern const char *basecacherepo;
-
-
-#define HANDLE_ERR(ERR, ...) \
-    error(ERR, ##__VA_ARGS__); \
-    return FAIL;
+#define HANDLE_ERR(ERR, ...) error(ERR, ##__VA_ARGS__); return FAIL;
 
 #define UNWRAP(EXP) { \
     int res = (EXP); \
@@ -30,10 +28,6 @@ extern const char *basecacherepo;
     void *res = (EXP); \
     if (!res) return ERR_SYS; }
 
-extern void *_pres;
-
-#define UNWRAP_P(EXP) (_pres = EXP) ? _pres : NULL; if (!_pres) return ERR_SYS;
-
 typedef enum {
     OK = 0,
     FAIL = 1,
@@ -42,3 +36,5 @@ typedef enum {
     ERR_INVARG = 4,
     ERR_USER = 5
 } result;
+
+#endif

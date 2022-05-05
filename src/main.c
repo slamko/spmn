@@ -24,9 +24,14 @@
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
-const char *basecacherepo = NULL;
+typedef int(*commandp)(int, char **, const char *); 
 
-typedef int(*commandp)(int, char **); 
+static const commandp commands[] = {
+        &parse_sync_args,
+        &parse_search_args,
+        &parse_open_args,
+        &parse_load_args
+    };
 
 enum command {
     SYNC = 0,
@@ -36,31 +41,7 @@ enum command {
 };
 
 int
-get_repocache(const char **cachedirbuf) {
-    char *homedir = NULL;
-    struct passwd *pd = NULL;
-    size_t homedirplen;
-
-    homedir = getenv("HOME");
-    if (!homedir) {
-        pd = getpwuid(getuid());
-        P_UNWRAP (pd)
-
-        homedir = pd->pw_dir;
-    }
-
-    homedirplen = strnlen(homedir, PATHBUF);
-
-    *cachedirbuf = calloc(PATHBUF + homedirplen + 1, sizeof(**cachedirbuf));
-    P_UNWRAP(*cachedirbuf)
-    
-    strlcpy(*cachedirbuf, homedir, PATHBUF);
-    strlcpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
-    return OK;
-}
-
-int
-try_sync_caches(void) {
+try_sync_caches(const char *basecacherepo) {
     struct stat cache_sb = {0};
     time_t lastmtime, curtime;
     struct tm *lmttm = NULL, *cttm = NULL;
@@ -100,13 +81,8 @@ parse_command(const int argc, char **argv, enum command *commandarg) {
 
 int
 main(int argc, char **argv) {
+    char *basecacherepo;
     enum command cmd;
-    commandp commands[] = {
-        &parse_sync_args,
-        &parse_search_args,
-        &parse_open_args,
-        &parse_load_args
-    };
 
     if (parse_command(argc, argv, &cmd)) {
         print_usage();
@@ -123,10 +99,10 @@ main(int argc, char **argv) {
             return EXIT_FAILURE;
         }
 
-        if (try_sync_caches()) {
+        if (try_sync_caches(basecacherepo)) {
             error("Failed to autosync caches. Continuing without syncing...");
         }
     }
 
-    return commands[(int)cmd](argc, argv);
+    return commands[(int)cmd](argc, argv, basecacherepo);
 }

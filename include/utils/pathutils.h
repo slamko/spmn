@@ -1,6 +1,6 @@
 #include <stdbool.h>
 #include <dirent.h>
-#include "utils/logutils.h"
+#include "deftypes.h"
 
 int check_isdir(const struct dirent *dir);
 
@@ -17,5 +17,7 @@ result search_tooldir(char **buf, const char *toolname);
 result get_patchdir(char **patchdir, const char *toolname);
 
 result append_patchdir(char **buf, const char *toolname);
+
+result get_repocache(char **cachedirbuf);
 
 bool check_baserepo_exists(void);
