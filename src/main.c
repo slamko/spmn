@@ -16,7 +16,7 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <time.h>
-#include "def.h"
+#include "deftypes.h"
 #include "commands/runsearch.h"
 #include "commands/sync.h"
 #include "commands/open.h"
@@ -24,7 +24,7 @@
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
-char *basecacherepo = NULL;
+const char *basecacherepo = NULL;
 
 typedef int(*commandp)(int, char **); 
 
@@ -36,7 +36,7 @@ enum command {
 };
 
 int
-get_repocache(char **cachedirbuf) {
+get_repocache(const char **cachedirbuf) {
     char *homedir = NULL;
     struct passwd *pd = NULL;
     size_t homedirplen;

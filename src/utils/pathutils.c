@@ -77,48 +77,56 @@ bufappend(char *buf, const char *append) {
     return strncat(buf, append, PATHBUF);
 }
 
-int
-check_tool_exists(const char *toolsdir_path, const char *toolname) {
+result
+append_tooldir(char **buf, const char *tooldir) {
+    UNWRAP (spappend(buf, basecacherepo, tooldir))
+    return OK;
+}
+
+result
+search_tooldir(char **buf, const char *toolname) {
+    char *toolsdir_path;
     DIR *toolsdir = NULL;
-    struct dirent *tdir = NULL;
+    struct dirent *tool = NULL;
+
+    *buf = NULL;
+    UNWRAP (spappend(&toolsdir_path, basecacherepo, TOOLSDIR))
 
     toolsdir = opendir(toolsdir_path);
     P_UNWRAP (toolsdir)
 
-    while ((tdir = readdir(toolsdir))) {
-        if (OK(check_isdir(tdir))) {
-            if (OK(strncmp(toolname, tdir->d_name, ENTRYLEN))) {
-                return OK;
+    while ((tool = readdir(toolsdir))) {
+        if (OK(check_isdir(tool))) {
+            if (OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
+                *buf = tool->d_name;
             }
         } 
     }
     
-    closedir(toolsdir);
-}
-
-result
-append_tooldir(char **buf, const char *baserepodir, const char *toolname) {
-   
-    char *toolsdirpath;
-    
-    *buf = NULL;
-    UNWRAP (spappend(&toolsdirpath, baserepodir, TOOLSDIR))
-    
-    return OK;
+    UNWRAP (closedir(toolsdir))
+    return !!*buf;
 }
 
 result
 get_patchdir(char **patchdir, const char *toolname) {
     if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        UNWRAP (spappend(patchdir, basecacherepo, DWM_PATCHESDIR))
+        *patchdir = DWM; 
     } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        UNWRAP (spappend(patchdir, basecacherepo, ST_PATCHESDIR))
+        *patchdir = ST;
     } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        UNWRAP (spappend(patchdir, basecacherepo, SURF_PATCHESDIR))
+        *patchdir = SURF;
     } else {
-        UNWRAP (append_tooldir(patchdir, basecacherepo, toolname))
-    }   
+        UNWRAP (search_tooldir(patchdir, toolname))
+    }
 
+    return OK;
+}
+
+result 
+append_patchdir(char **buf, const char *toolname) {
+    char *patchdir = NULL;
+    UNWRAP (get_patchdir(&patchdir, toolname))
+    UNWRAP (spappend(buf, basecacherepo, patchdir)) 
     return OK;
 }
 

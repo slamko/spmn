@@ -1,7 +1,7 @@
 #include <ctype.h>
-#include "def.h"
+#include <stdlib.h>
 #include "utils/pathutils.h"
-#include "utils/logutils.h"
+#include "deftypes.h"
 
 int
 append_patchmd(char **buf, const char *patchdir, char *patch) {
