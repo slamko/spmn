@@ -122,16 +122,20 @@ read_description(FILE *descfile, const char *indexmd) {
     return res;
 }
 
-void 
+result 
 lock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
-        pthread_mutex_lock(mutex);
+        return pthread_mutex_lock(mutex);
+
+    return OK;
 }
 
-void 
+result 
 unlock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
-        pthread_mutex_unlock(mutex);
+        return pthread_mutex_unlock(mutex);
+    
+    return OK;
 }
 
 void 
@@ -155,33 +159,35 @@ lookup_entries_args(const char *descfname, const int startpoint,
     DIR *pd;
     FILE *descfile, *rescache;
     struct dirent *pdir;
-    int res = 1;
+    int res = FAIL;
 
     printf("\nStart point: %d", startpoint);
     printf("\nEnd point: %d", endpoint);
 
-    TRY(rescache = fdopen(outfd, "w")) 
-        WITH(fcache_error())
+    rescache = fdopen(outfd, "w");
+    P_UNWRAP(rescache)
 
-    TRY(pd = opendir(patchdir)) 
-    WITH(
-        fcache_error(); 
-        goto cleanuprescache)
+    pd = opendir(patchdir);
+    if (!pd) {
+        res = ERR_SYS;
+        goto cleanuprescache;
+    }
     
     while ((pdir = readdir(pd)) != NULL) {
         if (OK(check_isdir(pdir))) {
             char *indexmd = NULL; 
 
-            TRY(descfile = fopen(descfname, "w+")) 
-            WITH(
-                fcache_error(); 
-                goto cleanuppdir)
-
-            if (append_patchmd(&indexmd, patchdir, pdir->d_name)) {
-                perrfatal();
-                goto cleandescfile;
+            descfile = fopen(descfname, "w+");
+            if (!descfile) {
+                res = ERR_SYS;
+                goto cleanuppdir;
             }
-            
+
+            res = append_patchmd(&indexmd, patchdir, pdir->d_name);
+            if (!OK(res)) {
+                goto cleanall;
+            }
+
             if (OK(read_description(descfile, indexmd))) {
                 fseek(descfile, 0, SEEK_SET);
                 int searchres = searchdescr(descfile, pdir->d_name, sargs);
@@ -202,12 +208,15 @@ lookup_entries_args(const char *descfname, const int startpoint,
 
     res = 0;
 
-cleandescfile:
-    remove(descfname);
+cleanall:
+    if (remove(descfname))
+        res = ERR_SYS;
 cleanuppdir:
-    closedir(pd);
+    if (closedir(pd))
+        res = ERR_SYS;
 cleanuprescache:
-    fclose(rescache);
+    if (fclose(rescache))
+        res = ERR_SYS;
     return res;
 }
 

@@ -318,7 +318,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     }
 
     toolname_argpos = startp - TOOLNAME_ARGPOS;
-    if (append_patchdir(&patchdir, argv[toolname_argpos])) {
+    if (append_toolpath(&patchdir, basecacherepo, argv[toolname_argpos])) {
         error("Suckless tool with name: '%s' not found", argv[toolname_argpos]);
         return ERR_INVARG;
     }

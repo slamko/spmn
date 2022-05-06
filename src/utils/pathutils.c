@@ -56,9 +56,15 @@ sappend(const char *base, const char *append) {
 
 result
 spappend(char **bufp, const char *base, const char *append) {
-    size_t baselen = strlen(base);
-    size_t pnamelen = strlen(append);
     char *buf = NULL;
+    size_t baselen;
+    size_t pnamelen;
+
+    if (!base || !append)
+        return ERR_LOCAL;
+
+    baselen = strlen(base);
+    pnamelen = strlen(append);
     *bufp = calloc(baselen + pnamelen + 1, sizeof(**bufp));
     buf = *bufp;
 
@@ -77,6 +83,32 @@ bufappend(char *buf, const char *append) {
         return buf;
 
     return strncat(buf, append, PATHBUF);
+}
+
+result
+bufpappend(char *buf, const char *append) {
+    if (!buf)
+        return ERR_LOCAL;
+
+    P_UNWRAP (strncat(buf, append, PATHBUF))
+    return OK;
+}
+
+result 
+append_patch_path(char **pbuf, const char *toolpath, const char *patchname) {
+    size_t patchp_mlen;
+
+    patchp_mlen = strlen(toolpath) + sizeof(PATCHESP) + strlen(patchname);
+    *pbuf = calloc(patchp_mlen, sizeof(**pbuf));
+    P_UNWRAP ( *pbuf)
+
+    if (snprintf(*pbuf, patchp_mlen, "%s%s%s", toolpath, PATCHESP, patchname) != 3) {
+        UNWRAP (bufpappend(*pbuf, toolpath))
+        UNWRAP (bufpappend(*pbuf, PATCHESP))
+        UNWRAP (bufpappend(*pbuf, patchname))
+    }
+
+    return OK;
 }
 
 result
@@ -100,7 +132,7 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
     while ((tool = readdir(toolsdir))) {
         if (OK(check_isdir(tool))) {
             if (OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
-                UNWRAP (spappend(buf, toolsdir_path, tool->d_name))
+                UNWRAP (spappend(buf, TOOLSDIR, tool->d_name))
             }
         } 
     }
@@ -110,13 +142,13 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
 }
 
 result
-get_patchdir(char **patchdir, const char *basecacherepo, const char *toolname) {
+get_tool_path(char **patchdir, const char *basecacherepo, const char *toolname) {
     if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        *patchdir = DWM; 
+        *patchdir = DWM_PATCHESDIR; 
     } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        *patchdir = ST;
+        *patchdir = ST_PATCHESDIR;
     } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        *patchdir = SURF;
+        *patchdir = SURF_PATCHESDIR;
     } else {
         UNWRAP (search_tooldir(patchdir, basecacherepo, toolname))
     }
@@ -125,10 +157,10 @@ get_patchdir(char **patchdir, const char *basecacherepo, const char *toolname) {
 }
 
 result 
-append_patchdir(char **buf, const char *basecacherepo, const char *toolname) {
+append_toolpath(char **buf, const char *basecacherepo, const char *toolname) {
     char *patchdir = NULL;
-    UNWRAP (get_patchdir(&patchdir, basecacherepo, toolname))
-    UNWRAP (spappend(buf, basecacherepo, patchdir)) 
+    UNWRAP (get_tool_path(&patchdir, basecacherepo, toolname))
+    UNWRAP (append_tooldir(buf, basecacherepo, patchdir)) 
     return OK;
 }
 

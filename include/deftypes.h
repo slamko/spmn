@@ -3,7 +3,7 @@
 
 #include "def.h"
 
-#define HANDLE_ERR(ERR, ...) error(ERR, ##__VA_ARGS__); return FAIL;
+#define HANDLE_ERR(ERR, ...) { error(ERR, ##__VA_ARGS__); return FAIL; }
 
 #define UNWRAP(EXP) { \
     int res = (EXP); \
@@ -20,12 +20,12 @@
     else if (res) return res; }
 
 #define EUNWRAP(EXP, ERR) { \
-    int res = (EXP); \
+    const int res = (EXP); \
     if (res < 0) return ERR; \
     else if (res) return res; }
 
 #define P_UNWRAP(EXP) { \
-    void *res = (EXP); \
+    const void *res = (EXP); \
     if (!res) return ERR_SYS; }
 
 typedef enum {
