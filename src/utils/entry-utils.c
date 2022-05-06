@@ -21,12 +21,10 @@ append_patchmd(char **buf, const char *patchdir, char *patch) {
 
 result
 check_patch_exists(const char *toolpath, const char *patchname) {
-    size_t patchp_mlen;
     char *full_patch_path = NULL;
     struct stat st = {0};
     result res;
 
-    patchp_mlen = strlen(toolpath) + sizeof(PATCHESP) + strlen(patchname);
     UNWRAP (append_patch_path(&full_patch_path, toolpath, patchname))
 
     res = stat(full_patch_path, &st);

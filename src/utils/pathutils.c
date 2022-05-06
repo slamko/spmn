@@ -144,11 +144,17 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
 result
 get_tool_path(char **patchdir, const char *basecacherepo, const char *toolname) {
     if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        *patchdir = DWM_PATCHESDIR; 
+        size_t psize = sizeof(DWM_PATCHESDIR);
+        *patchdir = calloc(psize, sizeof(**patchdir)); 
+        strncpy(*patchdir, DWM_PATCHESDIR, psize - 1);
     } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        *patchdir = ST_PATCHESDIR;
+        size_t psize = sizeof(ST_PATCHESDIR);
+        *patchdir = calloc(psize, sizeof(**patchdir)); 
+        strncpy(*patchdir, ST_PATCHESDIR, psize - 1);
     } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        *patchdir = SURF_PATCHESDIR;
+        size_t psize = sizeof(SURF_PATCHESDIR);
+        *patchdir = calloc(psize, sizeof(**patchdir)); 
+        strncpy(*patchdir, SURF_PATCHESDIR, psize - 1);
     } else {
         UNWRAP (search_tooldir(patchdir, basecacherepo, toolname))
     }

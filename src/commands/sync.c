@@ -25,7 +25,7 @@ run_sync(const char *basecacherepo) {
     UNWRAP_N (gitpid)
 
     if (gitpid == 0) {
-        if (!check_baserepo_exists()) {
+        if (!check_baserepo_exists(basecacherepo)) {
             UNWRAP (execl(GITCMD, GITCMD, CLONE, SUCKLESSREPO, basecacherepo,
                         (char *)NULL)) 
         }

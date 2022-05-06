@@ -54,7 +54,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
         char *context = NULL, *parsedsstr = NULL;
 
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
-        if (!entrname_valid(searchstr, sstrlen)) {
+        if (!OK(entrname_valid(searchstr, sstrlen))) {
             return 1;
         }
 

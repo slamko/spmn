@@ -26,4 +26,4 @@ result append_toolpath(char **buf, const char *basecacherepo, const char *toolna
 
 result get_repocache(char **cachedirbuf);
 
-bool check_baserepo_exists(void);
+bool check_baserepo_exists(const char *baserepocache);

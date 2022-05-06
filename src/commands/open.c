@@ -1,10 +1,32 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <errno.h>
+#include <sys/wait.h>
 #include "utils/logutils.h"
 #include "utils/entry-utils.h"
 #include "utils/pathutils.h"
 #include "deftypes.h"
+
+#define XDG_OPEN "/bin/xdg-open"
+
+result 
+xdg_open(const char *url) {
+    int openst;
+    
+    if (!url)
+        return ERR_LOCAL;
+
+    if (fork() == 0) {
+        if (execl(XDG_OPEN, XDG_OPEN, url, (char *)NULL)) {
+            EPERROR()
+            exit(1);
+        }
+    } 
+
+    wait(&openst);
+    return !!openst;
+}
 
 result 
 openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
@@ -13,6 +35,7 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     char *toolpath = NULL;
     char *tooldir = NULL;
     char *url = NULL;
+    printf("start\n");
 
     if (entrname_valid(patch_name, patchn_len))
         HANDLE_ERR("Invalid patch name: '%s'", patch_name)
@@ -27,11 +50,13 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
 
     if (!OK(check_patch_exists(tooldir, patch_name))) {
         free(tooldir);
-        free(toolpath);
+        //free(toolpath);
         HANDLE_ERR("A patch with name: '%s' not found", patch_name);
     }
 
     UNWRAP (append_patch_path(&url, toolpath, patch_name))
+    UNWRAP (xdg_open(url))
+    printf("hello\n");
 
     return OK;
 }

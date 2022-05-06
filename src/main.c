@@ -36,8 +36,8 @@ static const commandp commands[] = {
 enum command {
     SYNC = 0,
     SEARCH = 1,
-    DOWNLOAD = 2,
-    OPEN = 3
+    OPEN = 2,
+    DOWNLOAD = 3
 };
 
 int
@@ -66,11 +66,11 @@ parse_command(const int argc, char **argv, enum command *commandarg) {
     if (argc <= 1)
         return ERR_INVARG;
 
-    if (OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, CMD_LEN))) {
+    if (OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, sizeof(SYNC_CMD) - 1))) {
         *commandarg = SYNC;   
-    } else if (OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD, CMD_LEN))) {
+    } else if (OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD, sizeof(DOWNLOAD_CMD) - 1))) {
         *commandarg = DOWNLOAD;
-    } else if (OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, CMD_LEN))) {
+    } else if (OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, sizeof(OPEN_CMD) - 1))) {
         *commandarg = OPEN;
     } else {
         *commandarg = SEARCH;
@@ -94,7 +94,7 @@ main(int argc, char **argv) {
     }
     
     if (cmd != SYNC) {
-        if (!check_baserepo_exists()) {
+        if (!check_baserepo_exists(basecacherepo)) {
             error_nolocalrepo();
             return EXIT_FAILURE;
         }
