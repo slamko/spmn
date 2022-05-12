@@ -25,8 +25,9 @@ check_patch_exists(const char *toolpath, const char *patchname) {
     struct stat st = {0};
     result res;
 
-    UNWRAP (append_patch_path(&full_patch_path, toolpath, patchname))
+    UNWRAP (spappend(&full_patch_path, toolpath, patchname))
 
+    puts(full_patch_path);
     res = stat(full_patch_path, &st);
     free(full_patch_path);
     return !!res;

@@ -9,6 +9,8 @@
 #include "deftypes.h"
 
 #define XDG_OPEN "/bin/xdg-open"
+#define HTTPS_PREF "https://"
+#define HTTPS_PLEN sizeof(HTTPS_PREF)
 
 result 
 xdg_open(const char *url) {
@@ -30,8 +32,10 @@ xdg_open(const char *url) {
 
 result 
 openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
-    int patchn_len = strnlen(patch_name, ENTRYLEN);
-    int toolname_len = strnlen(toolname, ENTRYLEN);
+    size_t toolpath_len;
+    size_t url_len;
+    size_t patchn_len = strnlen(patch_name, ENTRYLEN);
+    size_t toolname_len = strnlen(toolname, ENTRYLEN);
     char *toolpath = NULL;
     char *tooldir = NULL;
     char *url = NULL;
@@ -50,11 +54,15 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
 
     if (!OK(check_patch_exists(tooldir, patch_name))) {
         free(tooldir);
-        //free(toolpath);
-        HANDLE_ERR("A patch with name: '%s' not found", patch_name);
+        fprintf(stderr, "oops");
+        //HANDLE_ERR("A patch with name: '%s' not found", patch_name);
+        return FAIL;
     }
 
-    UNWRAP (append_patch_path(&url, toolpath, patch_name))
+    toolpath_len = strnlen(toolpath, LINEBUF);
+    url_len = HTTPS_PLEN + toolpath_len + patchn_len;
+    url = calloc(url_len, sizeof(*url));
+    snprintf(url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name);
     UNWRAP (xdg_open(url))
     printf("hello\n");
 
