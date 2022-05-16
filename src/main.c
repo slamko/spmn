@@ -16,7 +16,11 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <time.h>
-#include "deftypes.h"
+#define MINI_ZIC
+#include <zic/zic.h>
+#include "def.h"
+#define DEF_TYPES
+
 #include "commands/runsearch.h"
 #include "commands/sync.h"
 #include "commands/open.h"
@@ -40,11 +44,15 @@ enum command {
     DOWNLOAD = 3
 };
 
+DEFINE_ERROR(ERR_INVARG, 6)
+
 int
 try_sync_caches(const char *basecacherepo) {
     struct stat cache_sb = {0};
     time_t lastmtime, curtime;
     struct tm *lmttm = NULL, *cttm = NULL;
+
+    ZIC_RESULT_INIT()
 
     UNWRAP (stat(basecacherepo, &cache_sb))
     

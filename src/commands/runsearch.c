@@ -15,7 +15,11 @@
 #include <ctype.h>
 #include <pwd.h>
 #include "commands/search.h"
-#include "deftypes.h"
+#define MINI_ZIC
+#include <zic/zic.h>
+#include "def.h"
+#define DEF_TYPES
+
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 #include "utils/entry-utils.h"
@@ -44,6 +48,8 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     size_t lastalloc = 0, wid = 0;
     char delim[] = " ";
 
+    ZIC_RESULT_INIT()
+
     sargs->words = NULL;
     sargs->searchstr = NULL;
     sargs->wordcount = 0;
@@ -52,11 +58,9 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
         char *searchstr = sstrings[i];
         int sstrcnt, sstrlen;
         char *context = NULL, *parsedsstr = NULL;
-
+        
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
-        if (!OK(entrname_valid(searchstr, sstrlen))) {
-            return 1;
-        }
+        UNWRAP (entrname_valid(searchstr, sstrlen))
 
         pubsearchstr = strndup(searchstr, sstrlen);
         parsedsstr = strndup(searchstr, sstrlen);
@@ -74,8 +78,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             }
         }
 
-        if (!words) 
-            DIE_M(goto cleanup);
+        UNWRAP_PTR_CLEANUP(words)
 
         for (token = strtok_r(parsedsstr, delim, &context);
              token && wid < tstrcnt; wid++) {
@@ -83,9 +86,10 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             token = strtok_r(NULL, delim, &context);
         }
 
-    cleanup:
-        context = NULL;
-        free(parsedsstr);
+        CLEANUP(
+            context = NULL;
+            free(parsedsstr)
+        )
     }
 
     sargs->words = words;
@@ -158,15 +162,15 @@ setup_threadargs(lookupthread_args *threadargpool, const int tid,
     char descfname[] = DESCFILE;
 
     if (thcount < 1 || entrycnt < 1 || tid < 0 || tid >= thcount) {
-        return ERR_LOCAL;
+        ERROR(ERR_LOCAL)
     }
 
     thargs = threadargpool + tid;
     descffd = mkstemp(descfname);
-    UNWRAP_N (descffd)
+    UNWRAP_NEG (descffd)
 
     thargs->descfname = strndup(descfname, DESCFILE_LEN);
-    P_UNWRAP (thargs->descfname)
+    UNWRAP_PTR (thargs->descfname)
 
     thargs->descffd = descffd;
     thargs->outfd = thoutfd;
@@ -324,7 +328,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     }
 
     searchargs = calloc(1, sizeof(*searchargs));
-    P_UNWRAP (searchargs)
+    UNWRAP_PTR (searchargs)
 
     if (parse_search_symbols(searchargs, argv + startp, argc - startp)) {
         error("Invalid search string");

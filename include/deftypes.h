@@ -1,7 +1,7 @@
 #ifndef DEF_TYPES
 #define DEF_TYPES
-
 #include "def.h"
+
 
 #define HANDLE_ERR(ERR, ...) { error(ERR, ##__VA_ARGS__); return FAIL; }
 
