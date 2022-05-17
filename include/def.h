@@ -44,6 +44,12 @@
 #define CMD_LEN 8
 #define CMD_ARGPOS 1
 
+
+#define MINI_ZIC
+#include <zic/zic.h>
+
+DEFINE_ERROR(ERR_ENTRY_NOT_FOUND, 6)
+
 //#define USE_MULTITHREADED
 #define EPERROR() error(strerror(errno));
 #define OK(RES) RES == 0

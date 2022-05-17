@@ -15,8 +15,6 @@
 #include <ctype.h>
 #include <pwd.h>
 #include "commands/search.h"
-#define MINI_ZIC
-#include <zic/zic.h>
 #include "def.h"
 #define DEF_TYPES
 
@@ -60,7 +58,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
         char *context = NULL, *parsedsstr = NULL;
         
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
-        UNWRAP (entrname_valid(searchstr, sstrlen))
+        UNWRAP (check_entrname_valid(searchstr, sstrlen))
 
         pubsearchstr = strndup(searchstr, sstrlen);
         parsedsstr = strndup(searchstr, sstrlen);

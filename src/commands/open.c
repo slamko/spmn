@@ -6,10 +6,6 @@
 #include "utils/logutils.h"
 #include "utils/entry-utils.h"
 #include "utils/pathutils.h"
-
-#define MINI_ZIC
-#include <zic/zic.h>
-
 #include "def.h"
 
 #define XDG_OPEN "/bin/xdg-open"
@@ -61,19 +57,23 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     toolname_len = strnlen(toolname, ENTRYLEN);
 
     TRY (check_entrname_valid(patch_name, patchn_len),
-        HANDLE_CLENUP("Invalid patch name: '%s'", patch_name))
+        HANDLE("Invalid patch name: '%s'", patch_name))
 
     TRY (check_entrname_valid(toolname, toolname_len),
-        HANDLE_CLENUP("Invalid tool name: '%s'", toolname))
+        HANDLE("Invalid tool name: '%s'", toolname))
 
     TRY (get_tool_path(&toolpath, basecacherepo, toolname),
-        HANDLE_CLENUP("Suckless tool with name: '%s' not found", toolname))
+        CATCH(ERR_ENTRY_NOT_FOUND, 
+            HANDLE("Suckless tool with name: '%s' not found", toolname))
+
+        CATCH(ERR_SYS, ERROR(ERR_SYS))
+    )
 
     TRY (append_tooldir(&tooldir, basecacherepo, toolpath), 
         ERROR(ERR_SYS, free_toolpath))
 
     TRY (check_patch_exists(tooldir, patch_name),
-        HANDLE_CLENUP("A patch with name: '%s' not found", patch_name)
+        HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
     )
 
     UNWRAP_CLEANUP (build_url(&url, toolpath, patch_name, patchn_len))
