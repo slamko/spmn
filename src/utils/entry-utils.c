@@ -34,7 +34,7 @@ check_patch_exists(const char *toolpath, const char *patchname) {
 }
 
 result 
-entrname_valid(const char *entryname, const int enamelen) {
+check_entrname_valid(const char *entryname, const int enamelen) {
     if (!entryname || 
         *entryname == '\0' || 
         enamelen == 0 || 
