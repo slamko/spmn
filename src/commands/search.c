@@ -24,13 +24,13 @@ is_line_separator(const char *line) {
     return (line[0] & line[1] & line[2]) == '-';
 }
 
-int 
-matched_all(const bool *is_matched, const size_t wordcount) {
+result 
+check_matched_all(const bool *is_matched, const size_t wordcount) {
     for (size_t i = 0; i < wordcount; i++) {
         if (!is_matched[i])
-            return 1;
+            FAIL()
     }
-    return 0;
+    RET_OK()
 }
 
 int 
@@ -40,7 +40,7 @@ iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs)
             if (strstr(searchbuf, sargs->words[i])) {
                 matched[i] = true;
 
-                if (OK(matched_all(matched, sargs->wordcount)))
+                if (IS_OK(check_matched_all(matched, sargs->wordcount)))
                     return 1;
             }
         }
@@ -49,29 +49,33 @@ iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs)
 }
 
 int
+toolname_contains_searchword(const char *toolname, bool *matched, const searchsyms *sargs) {
+    return iter_search_words(toolname, matched, sargs);
+}
+
+result
 searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     char searchbuf[LINEBUF] = {0};
-    int res = 0;
     bool *matched = NULL;
 
-    matched = calloc(sargs->wordcount, sizeof(*matched));
-    if (!matched)
-        DIE_M()
+    ZIC_RESULT_INIT()
 
-    if (iter_search_words(toolname, matched, sargs))
-        goto cleanup;
+    matched = calloc(sargs->wordcount, sizeof(*matched));
+    UNWRAP_PTR (matched)
+
+    if (toolname_contains_searchword(toolname, matched, sargs))
+        RET_OK_CLEANUP()
 
     while (fgets(searchbuf, sizeof(searchbuf), descfile)) {
         if (iter_search_words(searchbuf, matched, sargs))
-            goto cleanup;
+            RET_OK_CLEANUP()
 
         memset(searchbuf, ASCNULL, sizeof(searchbuf));
     }
 
-cleanup:
-    res = matched_all(matched, sargs->wordcount);
-    free(matched);
-    return res;
+    ZIC_RESULT = check_matched_all(matched, sargs->wordcount);
+    
+    CLEANUP(free(matched))
 }
 
 char *
@@ -84,25 +88,25 @@ tryread_desc(FILE *index, char *buf, const bool descrexists) {
 
 int
 read_description(FILE *descfile, const char *indexmd) {
-    FILE *index;
-    int res = 1;
+    FILE *index = NULL;
     char tempbuf[LINEBUF] = {0};
     char linebuf[LINEBUF] = {0};
     bool description_exists = false;
 
-    index = fopen(indexmd, "r");
-    if (!index)
-        return res;
+    ZIC_RESULT_INIT()
+
+    UNWRAP_PTR (index = fopen(indexmd, "r"))
 
     for(int descrlen = 0; 
-        tryread_desc(index, linebuf, description_exists) != NULL;) {
+        tryread_desc(index, linebuf, description_exists);
+        ) {
         if (description_exists) {
             if (is_line_separator(linebuf)) {
                 if (descrlen > 1)
                     break;
             } else {
                 if (descrlen > 0)
-                    fputs(tempbuf, descfile);
+                    UNWRAP_NEG_CLEANUP (fputs(tempbuf, descfile))
                 
                 memcpy(tempbuf, linebuf, sizeof(linebuf));
             }
@@ -114,12 +118,11 @@ read_description(FILE *descfile, const char *indexmd) {
     }
 
     if (description_exists) {
-        fflush(descfile);
-        res = 0;
+        UNWRAP_NEG_CLEANUP (fflush(descfile))
     }
 
-    fclose(index);
-    return res;
+    RET_OK_CLEANUP()
+    CLEANUP (fclose(index))
 }
 
 result 
@@ -127,7 +130,7 @@ lock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         return pthread_mutex_lock(mutex);
 
-    return OK;
+    RET_OK()
 }
 
 result 
@@ -135,21 +138,37 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         return pthread_mutex_unlock(mutex);
     
-    return OK;
+    RET_OK()
 }
 
-void 
+result 
 print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
-    char dch;
+    char *print_buf = NULL;
+    size_t descf_size;
     static int matchedc;
+    ZIC_RESULT_INIT()
 
     matchedc++;
-    fprintf(targetf, "\n------------------------------------------------------------");
-    fprintf(targetf, "\n%d) %s:\n", matchedc, entryname);
 
-    while((dch = fgetc(descfile)) != EOF) {
-        fputc(dch, targetf);
+    UNWRAP_NEG (fprintf(targetf, "\n------------------------------------------------------------"))
+    UNWRAP_NEG (fprintf(targetf, "\n%d) %s:\n", matchedc, entryname))
+
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_END))
+    UNWRAP_NEG (descf_size = ftell(descfile))
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_SET))
+
+    print_buf = calloc(descf_size + 1, sizeof(*print_buf));
+    UNWRAP_PTR (print_buf)
+
+    if (fread(print_buf, descf_size, sizeof(*print_buf), descfile) == 0) {
+        UNWRAP_CLEANUP (ferror(descfile))
     }
+
+    if (fwrite(print_buf, descf_size, sizeof(*print_buf), descfile) == 0) {
+        UNWRAP_CLEANUP (ferror(descfile))
+    }
+
+    CLEANUP(free(print_buf))
 }
 
 int
