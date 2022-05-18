@@ -8,22 +8,9 @@
 void 
 error(const char* err_format, ...) {
     va_list args;
-    int errlen;
-    size_t errmsg_size;
-    char *err = NULL;
 
     va_start(args, err_format);
-    errlen = strlen(err_format);
-    errmsg_size = ERR_PREFIX_LEN + errlen;
-    err = calloc(errmsg_size, sizeof(*err));
-    if (!err)
-        DIE_F();
-
-    snprintf(err, errmsg_size,  ERR_PREFIX"%s", err_format);
-
-    vfprintf(stderr, err, args);
-    vfprintf(stderr, "\n", args);
-    free(err);
+    FORMAT_ERR(err_format, args)
     va_end(args);
 }
 

@@ -1,7 +1,7 @@
 CC=gcc
 TARGET=sise
 LIBS=-pthread -lm -lbsd
-WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
+WEFLAGS=-Wall -Wextra -Werror -pedantic
 CFLAGS=$(WEFLAGS) -g -Iinclude/
 
 SRCD=src

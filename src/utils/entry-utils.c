@@ -34,9 +34,9 @@ check_patch_exists(const char *toolpath, const char *patchname) {
 
 result 
 check_entrname_valid(const char *entryname, const int enamelen) {
-    if (!entryname || 
-        *entryname == '\0' || 
-        enamelen == 0 || 
+    if (!entryname ||
+        *entryname == '\0' ||
+        enamelen == 0 ||
         enamelen > MAXSEARCH_LEN ||
         (enamelen == 1 && isspace(*entryname)))
         FAIL();

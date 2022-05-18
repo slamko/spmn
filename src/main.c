@@ -16,8 +16,6 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <time.h>
-#define MINI_ZIC
-#include <zic/zic.h>
 #include "def.h"
 #define DEF_TYPES
 
@@ -44,9 +42,7 @@ enum command {
     DOWNLOAD = 3
 };
 
-DEFINE_ERROR(ERR_INVARG, 6)
-
-int
+result
 try_sync_caches(const char *basecacherepo) {
     struct stat cache_sb = {0};
     time_t lastmtime, curtime;
@@ -66,25 +62,25 @@ try_sync_caches(const char *basecacherepo) {
         (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D)) {
         return run_sync();
     }
-    return OK;
+    RET_OK();
 }
 
-int
+result
 parse_command(const int argc, char **argv, enum command *commandarg) {
     if (argc <= 1)
-        return ERR_INVARG;
+        ERROR(ERR_INVARG);
 
-    if (OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, sizeof(SYNC_CMD) - 1))) {
+    if (IS_OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, sizeof(SYNC_CMD) - 1))) {
         *commandarg = SYNC;   
-    } else if (OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD, sizeof(DOWNLOAD_CMD) - 1))) {
+    } else if (IS_OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD, sizeof(DOWNLOAD_CMD) - 1))) {
         *commandarg = DOWNLOAD;
-    } else if (OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, sizeof(OPEN_CMD) - 1))) {
+    } else if (IS_OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, sizeof(OPEN_CMD) - 1))) {
         *commandarg = OPEN;
     } else {
         *commandarg = SEARCH;
     }
 
-    return OK;
+    RET_OK();
 }
 
 int
