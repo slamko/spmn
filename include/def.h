@@ -50,6 +50,8 @@
 
 DEFINE_ERROR(ERR_ENTRY_NOT_FOUND, 6)
 
+DEFINE_ERROR(ERR_INVARG, 7)
+
 //#define USE_MULTITHREADED
 #define EPERROR() error(strerror(errno));
 #define OK(RES) RES == 0

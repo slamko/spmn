@@ -19,7 +19,7 @@
 #include "def.h"
 #include "utils/logutils.h" 
 
-int 
+result 
 check_isdir(const struct dirent *dir) {
     struct stat dst;
     ZIC_RESULT_INIT()
