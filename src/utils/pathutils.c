@@ -16,42 +16,32 @@
 #include <ctype.h>
 #include <pwd.h>
 #include <time.h>
-#include "deftypes.h"
+#include "def.h"
 #include "utils/logutils.h" 
 
 int 
 check_isdir(const struct dirent *dir) {
     struct stat dst;
+    ZIC_RESULT_INIT()
 
     if (!dir || !dir->d_name)
-        return 1;
+        FAIL();
 
     if (dir->d_name[0] == '.') 
-        return 1;
+        FAIL();
 
     switch (dir->d_type)
     {
     case DT_DIR:
-        return 0;
+        RET_OK();
     case DT_UNKNOWN: 
-        if (OK(stat(dir->d_name, &dst)))
-            return S_ISDIR(dst.st_mode);  
+        TRY (stat(dir->d_name, &dst),
+            HANDLE_SYS()
+        )
         
-        return 1;
-    default: return 1;
+        return S_ISDIR(dst.st_mode);  
+    default: FAIL();
     }
-}
-
-char *
-sappend(const char *base, const char *append) {
-    size_t baselen = strlen(base);
-    size_t pnamelen = strlen(append);
-    char *buf = calloc(baselen + pnamelen + 1, sizeof(*buf));
-    if (!buf)
-        DIE_F()
-
-    strncpy(buf, base, baselen);
-    return strncat(buf, append, pnamelen);
 }
 
 result
@@ -61,37 +51,28 @@ spappend(char **bufp, const char *base, const char *append) {
     size_t pnamelen;
 
     if (!base || !append)
-        return ERR_LOCAL;
+        ERROR(ERR_LOCAL);
 
     baselen = strlen(base);
     pnamelen = strlen(append);
-    *bufp = calloc(baselen + pnamelen + 1, sizeof(**bufp));
-    buf = *bufp;
 
-    if (!buf)
-        return ERR_SYS;
+    *bufp = calloc(baselen + pnamelen + 1, sizeof(**bufp));    
+    UNWRAP_PTR(*bufp)
+    
+    buf = *bufp;
 
     strncpy(buf, base, baselen);
     strncat(buf, append, pnamelen);
 
-    return OK;
-}
-
-char *
-bufappend(char *buf, const char *append) {
-    if (!buf)
-        return buf;
-
-    return strncat(buf, append, PATHBUF);
+    RET_OK();
 }
 
 result
 bufpappend(char *buf, const char *append) {
-    if (!buf)
-        return ERR_LOCAL;
+    UNWRAP_PTR_ERR (buf, ERR_LOCAL)
 
-    P_UNWRAP (strncat(buf, append, PATHBUF))
-    return OK;
+    strncat(buf, append, PATHBUF);
+    RET_OK();
 }
 
 result 
@@ -99,40 +80,38 @@ append_patch_path(char **pbuf, const char *toolpath, const char *patchname) {
     size_t patchp_mlen;
 
     patchp_mlen = strlen(toolpath) + sizeof(PATCHESP) + strlen(patchname);
+    
     *pbuf = calloc(patchp_mlen, sizeof(**pbuf));
-    P_UNWRAP ( *pbuf)
+    UNWRAP_PTR (*pbuf)
 
-    if (snprintf(*pbuf, patchp_mlen, "%s%s%s", toolpath, PATCHESP, patchname) != 3) {
-        UNWRAP (bufpappend(*pbuf, toolpath))
-        UNWRAP (bufpappend(*pbuf, PATCHESP))
-        UNWRAP (bufpappend(*pbuf, patchname))
-    }
+    UNWRAP (bufpappend(*pbuf, toolpath))
+    UNWRAP (bufpappend(*pbuf, PATCHESP))
+    UNWRAP (bufpappend(*pbuf, patchname))
 
-    return OK;
+    RET_OK();
 }
 
 result
 append_tooldir(char **buf, const char *basecacherepo, const char *tooldir) {
-    UNWRAP (spappend(buf, basecacherepo, tooldir))
-    return OK;
+    return spappend(buf, basecacherepo, tooldir);
 }
 
 result
 search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
-    char *toolsdir_path;
+    char *toolsdir_path = NULL;
     DIR *toolsdir = NULL;
     struct dirent *tool = NULL;
 
     *buf = NULL;
     UNWRAP (spappend(&toolsdir_path, basecacherepo, TOOLSDIR))
 
-    toolsdir = opendir(toolsdir_path);
-    P_UNWRAP (toolsdir)
+    UNWRAP_PTR (toolsdir = opendir(toolsdir_path))
 
     while ((tool = readdir(toolsdir))) {
-        if (OK(check_isdir(tool))) {
-            if (OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
-                UNWRAP (spappend(buf, TOOLSDIR, tool->d_name))
+        if (IS_OK(check_isdir(tool))) {
+            if (IS_OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
+                UNWRAP (
+                    spappend(buf, TOOLSDIR, tool->d_name))
             }
         } 
     }
@@ -142,32 +121,43 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
 }
 
 result
+str_append_patch_dir(char **patchdir, const char *append, size_t psize) {
+    *patchdir = calloc(psize, sizeof(**patchdir)); 
+    UNWRAP_PTR (*patchdir)
+    
+    strncpy(*patchdir, append, psize - 1);
+    RET_OK()
+}
+
+result
 get_tool_path(char **patchdir, const char *basecacherepo, const char *toolname) {
-    if (OK(strncmp(toolname, DWM, ENTRYLEN))) {
-        size_t psize = sizeof(DWM_PATCHESDIR);
-        *patchdir = calloc(psize, sizeof(**patchdir)); 
-        strncpy(*patchdir, DWM_PATCHESDIR, psize - 1);
-    } else if (OK(strncmp(toolname, ST, ENTRYLEN))) {
-        size_t psize = sizeof(ST_PATCHESDIR);
-        *patchdir = calloc(psize, sizeof(**patchdir)); 
-        strncpy(*patchdir, ST_PATCHESDIR, psize - 1);
-    } else if (OK(strncmp(toolname, SURF, ENTRYLEN))) {
-        size_t psize = sizeof(SURF_PATCHESDIR);
-        *patchdir = calloc(psize, sizeof(**patchdir)); 
-        strncpy(*patchdir, SURF_PATCHESDIR, psize - 1);
+    if (IS_OK(strncmp(toolname, DWM, ENTRYLEN))) {
+        UNWRAP (
+            str_append_patch_dir(patchdir, DWM_PATCHESDIR, sizeof(DWM_PATCHESDIR))
+        )
+    } else if (IS_OK(strncmp(toolname, ST, ENTRYLEN))) {
+        UNWRAP (
+            str_append_patch_dir(patchdir, ST_PATCHESDIR, sizeof(ST_PATCHESDIR))
+        )
+    } else if (IS_OK(strncmp(toolname, SURF, ENTRYLEN))) {
+        UNWRAP (
+            str_append_patch_dir(patchdir, SURF_PATCHESDIR, sizeof(SURF_PATCHESDIR))
+        )
     } else {
         UNWRAP (search_tooldir(patchdir, basecacherepo, toolname))
     }
 
-    return OK;
+    RET_OK();
 }
 
 result 
 append_toolpath(char **buf, const char *basecacherepo, const char *toolname) {
     char *patchdir = NULL;
+
     UNWRAP (get_tool_path(&patchdir, basecacherepo, toolname))
     UNWRAP (append_tooldir(buf, basecacherepo, patchdir)) 
-    return OK;
+    
+    RET_OK();
 }
 
 result
@@ -178,8 +168,7 @@ get_repocache(char **cachedirbuf) {
 
     homedir = getenv("HOME");
     if (!homedir) {
-        pd = getpwuid(getuid());
-        P_UNWRAP (pd)
+        UNWRAP_PTR (pd = getpwuid(getuid()))
 
         homedir = pd->pw_dir;
     }
@@ -187,18 +176,19 @@ get_repocache(char **cachedirbuf) {
     homedirplen = strnlen(homedir, PATHBUF);
 
     *cachedirbuf = calloc(PATHBUF + homedirplen + 1, sizeof(**cachedirbuf));
-    P_UNWRAP(*cachedirbuf)
+    UNWRAP_PTR(*cachedirbuf)
     
     strlcpy(*cachedirbuf, homedir, PATHBUF);
     strlcpy(*cachedirbuf + homedirplen, BASEREPO, PATHBUF);
-    return OK;
+    
+    RET_OK();
 }
 
 bool 
 check_baserepo_exists(const char *basecacherepo) {
     struct stat brst;
 
-    if (OK(stat(basecacherepo, &brst))) {
+    if (IS_OK(stat(basecacherepo, &brst))) {
         return S_ISDIR(brst.st_mode);
     }
 
