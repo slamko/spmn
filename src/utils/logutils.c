@@ -44,16 +44,3 @@ void
 error_nolocalrepo(void) {
     error("Unable to find base suckless repo. Try running 'sise sync'");
 }
-
-void fatalerr(const char *err) {
-    fprintf(stderr, err);
-    fprintf(stderr, "\n");
-}
-
-void perrfatal(void) {
-    perror(FATALERR_PREFIX);
-}
-
-void fcache_error(void) {
-    fatalerr("fatal: Cache access error");
-}

@@ -1,4 +1,7 @@
 
+#ifndef DEF_BASE
+#define DEF_BASE
+
 #define BASEREPO "/.cache/sise/sites/"
 #define PATCHESDIR ".suckless.org/patches/"
 #define PATCHESP "/patches/"
@@ -55,3 +58,5 @@ DEFINE_ERROR(ERR_INVARG, 7)
 //#define USE_MULTITHREADED
 #define EPERROR() error(strerror(errno));
 #define OK(RES) RES == 0
+
+#endif

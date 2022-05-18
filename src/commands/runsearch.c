@@ -16,7 +16,6 @@
 #include <pwd.h>
 #include "commands/search.h"
 #include "def.h"
-#define DEF_TYPES
 
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
@@ -54,7 +53,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
 
     for (int i = 0; i < scount; i++) {
         char *searchstr = sstrings[i];
-        int sstrcnt, sstrlen;
+        int sstrcnt = 0, sstrlen = 0;
         char *context = NULL, *parsedsstr = NULL;
         
         sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
@@ -76,7 +75,8 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             }
         }
 
-        UNWRAP_PTR_CLEANUP(words)
+        if (!words)
+            goto cleanup;
 
         for (token = strtok_r(parsedsstr, delim, &context);
              token && wid < tstrcnt; wid++) {
@@ -84,10 +84,9 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
             token = strtok_r(NULL, delim, &context);
         }
 
-        CLEANUP(
-            context = NULL;
-            free(parsedsstr)
-        )
+    cleanup:
+        context = NULL;
+        free(parsedsstr);
     }
 
     sargs->words = words;
@@ -99,11 +98,12 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
 int
 worth_multithread(int entrycount) {
     printf("\nEntrycount: %d\n", entrycount);
+    (void)entrycount;
 
     #ifdef USE_MULTITHREADED
     return entrycount >= ((OPTWORK_AMOUNT * 2) - (OPTWORK_AMOUNT - (OPTWORK_AMOUNT / 4)));
     #else
-    return 0;
+    return OK;
     #endif
 }
 
@@ -179,11 +179,11 @@ setup_threadargs(lookupthread_args *threadargpool, const int tid,
     if (thcount == 1) {
         thargs->startpoint = 0;
         thargs->endpoint = entrycnt;
-        return OK;
+        RET_OK()
     }
 
     assign_thread_bounds(threadargpool, tid, thcount, entrycnt);   
-    return OK;
+    RET_OK()
 }
 
 void
@@ -212,7 +212,7 @@ cleanup_threadargs(lookupthread_args *thargs) {
 
 int 
 run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
-    pthread_t *threadpool;
+    /*pthread_t *threadpool;
     pthread_mutex_t fmutex;
     lookupthread_args *thargs;
     FILE *rescache;
@@ -273,17 +273,18 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
 cleanup:
     fclose(rescache);
     remove(rescachename);
-    return !!res;
+    return !!res;*/
+    return 0;
 }
 
 int run_search(char *patchdir, searchsyms *searchargs) {
     DIR *pd = NULL;
     struct dirent *pdir = NULL;
     int tentrycnt = 0;
-    int res = FAIL;
 
-    pd = opendir(patchdir);
-    P_UNWRAP (pd)
+    ZIC_RESULT_INIT()
+
+    UNWRAP_PTR (pd = opendir(patchdir))
 
     while ((pdir = readdir(pd))) {
         if (pdir->d_type == DT_DIR) 
@@ -292,50 +293,51 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     UNWRAP (closedir(pd))
     
     if (worth_multithread(tentrycnt)) {
-        res = run_multithreaded(patchdir, searchargs, tentrycnt);
+        ZIC_RESULT = run_multithreaded(patchdir, searchargs, tentrycnt);
     } else {
-        lookupthread_args thargs;
+        lookupthread_args thargs = {0};
         lookupthread_args *thargsp = NULL;
 
-        UNWRAP (setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL))
+        UNWRAP (
+            setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL))
         
         thargsp = &thargs;
 
         lookup_entries(thargsp);
-        res = thargsp->result;
+        ZIC_RESULT = thargsp->result;
         cleanup_descfname(thargsp);
         cleanup_searchargs(thargsp->searchargs);
     }
-    return res;
+    ZIC_RETURN_RESULT()
 }
 
 int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     char *patchdir = NULL;
     searchsyms *searchargs = NULL;
     size_t startp = 2, toolname_argpos;
-    result res;
 
-    if (OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
+    ZIC_RESULT_INIT()
+
+    if (IS_OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
         startp++;
     }
 
     toolname_argpos = startp - TOOLNAME_ARGPOS;
-    if (append_toolpath(&patchdir, basecacherepo, argv[toolname_argpos])) {
-        error("Suckless tool with name: '%s' not found", argv[toolname_argpos]);
-        return ERR_INVARG;
-    }
+    TRY (append_toolpath(&patchdir, basecacherepo, argv[toolname_argpos]),
+        HANDLE ("Suckless tool with name: '%s' not found", argv[toolname_argpos])
+    )
 
     searchargs = calloc(1, sizeof(*searchargs));
-    UNWRAP_PTR (searchargs)
+    UNWRAP_PTR (searchargs, cl_patchdir)
 
-    if (parse_search_symbols(searchargs, argv + startp, argc - startp)) {
-        error("Invalid search string");
-        return ERR_INVARG;
-    }
+    TRY (parse_search_symbols(searchargs, argv + startp, argc - startp), 
+        HANDLE_CLEANUP("Invalid search string")
+    )
 
-    res = run_search(patchdir, searchargs);
-    switch (res) {   
-    default:
-        return res;
-    }
+    ZIC_RESULT = run_search(patchdir, searchargs);
+
+    CLEANUP(
+        cl_searchargs: free(searchargs);
+        cl_patchdir: free(patchdir)
+    )
 }

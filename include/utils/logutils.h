@@ -11,12 +11,6 @@ void print_usage(void);
 
 void error_nolocalrepo(void);
 
-void fatalerr(const char *err);
-
-void perrfatal(void);
-
-void fcache_error(void);
-
 #define DIE_M(CLEANUP) { \
     perror(FATALERR_PREFIX); \
     CLEANUP; \
