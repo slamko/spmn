@@ -29,7 +29,7 @@
 #define OPTWORK_AMOUNT 80
 #define MIN_WORKAMOUNT 40
 #define ERR_PREFIX "error: "
-#define BUG_PREFIX "bug: %s:%d: %s"
+#define BUG_PREFIX "bug report: %s:%d: %s"
 #define BUG_PREFIX_LEN sizeof(BUG_PREFIX)
 #define FATALERR_PREFIX "fatal error: "
 #define ERR_PREFIX_LEN sizeof(ERR_PREFIX)

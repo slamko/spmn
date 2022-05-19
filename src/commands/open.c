@@ -8,16 +8,16 @@
 #include "utils/pathutils.h"
 #include "def.h"
 
-#define XDG_OPEN "/bin/xdg-open"
-#define HTTPS_PREF "https://"
-#define HTTPS_PLEN sizeof(HTTPS_PREF)
+static const char *const XDG_OPEN   = "/bin/xdg-open";
+static const char *const HTTPS_PREF = "https://";
+static const HTTPS_PLEN             = sizeof(HTTPS_PREF);
 
 result 
 xdg_open(const char *url) {
     int openst;
     
     if (!url)
-        return ERR_LOCAL;
+        ERROR (ERR_LOCAL)
 
     if (fork() == 0) {
         if (execl(XDG_OPEN, XDG_OPEN, url, (char *)NULL)) {
@@ -36,10 +36,11 @@ build_url(char **url, const char *toolpath, const char *patch_name, size_t patch
 
     toolpath_len = strnlen(toolpath, LINEBUF);
     url_len = HTTPS_PLEN + toolpath_len + patchn_len;
+
     *url = calloc(url_len, sizeof(**url));
     UNWRAP_PTR(*url)
 
-    if (snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name) != 2) {
+    if (snprintf(*url, url_len, "%s%s%s", HTTPS_PREF, toolpath, patch_name) != 3) {
         ERROR(ERR_LOCAL)
     }
 
@@ -85,13 +86,22 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
         free_toolpath: free(toolpath))
 }
 
-int
+result
 parse_open_args(int argc, char **argv, const char *basecacherepo) {
-    result res;
+    ZIC_RESULT_INIT()
     
     if (argc != 4)
-        return ERR_INVARG;
+        ERROR (ERR_INVARG)
     
-    res = openp(argv[2], argv[3], basecacherepo);
-    return res;
+    TRY (openp(argv[2], argv[3], basecacherepo), 
+        CATCH(ERR_SYS,
+            HANDLE_SYS()
+        )
+
+        CATCH(ERR_LOCAL,
+            HANDLE_NO_FORMAT (bug(strerror(errno)))
+        )
+    )
+
+    ZIC_RETURN_RESULT()
 }

@@ -20,17 +20,9 @@ void bug(const char *bug_msg, ...) {
     size_t bugmsg_size;
     char *err = NULL;
 
-    va_start(args, bug_msg);
-    bugmsg_len = strlen(bug_msg);
-    bugmsg_size = BUG_PREFIX_LEN + bugmsg_len;
-    err = calloc(bugmsg_size, sizeof(*err));
-    if (!err)
-        DIE_F();
-
-    snprintf(err, bugmsg_size,  BUG_PREFIX, __FILE__, __LINE__, bug_msg);
-
+    fprintf(stderr, BUG_PREFIX, __FILE__, __LINE__, "\n");
     vfprintf(stderr, err, args);
-    vfprintf(stderr, "\n", args);
+    fprintf(stderr, "\n");
     free(err);
     va_end(args);
 }
