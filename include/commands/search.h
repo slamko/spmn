@@ -8,12 +8,12 @@ typedef struct searchargs {
 
 struct threadargs {
     char *descfname;
+    char *patchdir;
     int descffd;
     int outfd;
     int startpoint;
     int endpoint;
-    int result;
-    char *patchdir;
+    result result;
     pthread_mutex_t *mutex;
     searchsyms *searchargs;
 };
@@ -22,4 +22,4 @@ typedef struct threadargs lookupthread_args;
 
 void *search_entry(void *thread_args);
 
-int lookup_entries(const lookupthread_args *args);
+result lookup_entries(const lookupthread_args *args);

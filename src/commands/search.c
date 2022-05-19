@@ -75,7 +75,10 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
 
     ZIC_RESULT = check_matched_all(matched, sargs->wordcount);
     
-    CLEANUP(free(matched))
+    CLEANUP(
+        free(matched);
+        fseek(descfile, 0, SEEK_SET)
+    )
 }
 
 char *
@@ -141,11 +144,20 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
     RET_OK()
 }
 
+result
+get_descfile_size(FILE *descfile, size_t *size_p) {
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_END))
+    UNWRAP_NEG (*size_p = ftell(descfile))
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_SET))
+    RET_OK()
+}
+
 result 
 print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
     char *print_buf = NULL;
     size_t descf_size;
     static int matchedc;
+    
     ZIC_RESULT_INIT()
 
     matchedc++;
@@ -153,9 +165,7 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
     UNWRAP_NEG (fprintf(targetf, "\n------------------------------------------------------------"))
     UNWRAP_NEG (fprintf(targetf, "\n%d) %s:\n", matchedc, entryname))
 
-    UNWRAP_NEG (fseek(descfile, 0, SEEK_END))
-    UNWRAP_NEG (descf_size = ftell(descfile))
-    UNWRAP_NEG (fseek(descfile, 0, SEEK_SET))
+    UNWRAP (get_descfile_size(descfile, &descf_size))
 
     print_buf = calloc(descf_size + 1, sizeof(*print_buf));
     UNWRAP_PTR (print_buf)
@@ -171,51 +181,49 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
     CLEANUP(free(print_buf))
 }
 
-int
-lookup_entries_args(const char *descfname, const int startpoint, 
-                    const int endpoint, const int outfd, const char *patchdir, 
-                    const searchsyms *sargs, pthread_mutex_t *fmutex) {
-    DIR *pd;
-    FILE *descfile, *rescache;
-    struct dirent *pdir;
-    int res = FAIL;
+result
+lookup_entries_args(const char *descfname, 
+                    const int startpoint, const int endpoint, 
+                    const int outfd, 
+                    const char *patchdir, 
+                    const searchsyms *sargs, 
+                    pthread_mutex_t *fmutex) {
+    DIR *pd = NULL;
+    FILE *rescache = NULL;
+    struct dirent *pdir = NULL;
 
-    printf("\nStart point: %d", startpoint);
-    printf("\nEnd point: %d", endpoint);
+    ZIC_RESULT_INIT()
 
     rescache = fdopen(outfd, "w");
-    P_UNWRAP(rescache)
+    UNWRAP_PTR (rescache)
 
-    pd = opendir(patchdir);
-    if (!pd) {
-        res = ERR_SYS;
-        goto cleanuprescache;
-    }
+    UNWRAP_PTR (pd = opendir(patchdir), cl_rescache)
     
-    while ((pdir = readdir(pd)) != NULL) {
-        if (OK(check_isdir(pdir))) {
+    for (int entrid = 1;
+        (pdir = readdir(pd)) && 
+            (entrid > startpoint && entrid <= endpoint); 
+        entrid++) 
+        {
+        if (IS_OK(check_isdir(pdir))) {
+            FILE *descfile = NULL;
             char *indexmd = NULL; 
 
-            descfile = fopen(descfname, "w+");
-            if (!descfile) {
-                res = ERR_SYS;
-                goto cleanuppdir;
-            }
+            UNWRAP_PTR (descfile = fopen(descfname, "w+"), cl_pdir)
 
-            res = append_patchmd(&indexmd, patchdir, pdir->d_name);
-            if (!OK(res)) {
-                goto cleanall;
-            }
+            UNWRAP_CLEANUP (append_patchmd(&indexmd, patchdir, pdir->d_name))
 
-            if (OK(read_description(descfile, indexmd))) {
-                fseek(descfile, 0, SEEK_SET);
-                int searchres = searchdescr(descfile, pdir->d_name, sargs);
+            if (IS_OK(read_description(descfile, indexmd))) {
+                result search_res;
 
+                UNWRAP_CLEANUP (fseek(descfile, 0, SEEK_SET))
+
+                search_res = searchdescr(descfile, pdir->d_name, sargs);
                 lock_if_multithreaded(fmutex);
-                fseek(descfile, 0, SEEK_SET);
                 
-                if (OK(searchres)) {
-                    print_matched_entry(descfile, rescache, pdir->d_name);
+                if (IS_OK(search_res)) {
+                    UNWRAP_CLEANUP (
+                        print_matched_entry(descfile, rescache, pdir->d_name)
+                    )
                 }
 
                 unlock_if_multithreaded(fmutex);
@@ -225,21 +233,13 @@ lookup_entries_args(const char *descfname, const int startpoint,
         }
     }
 
-    res = 0;
-
-cleanall:
-    if (remove(descfname))
-        res = ERR_SYS;
-cleanuppdir:
-    if (closedir(pd))
-        res = ERR_SYS;
-cleanuprescache:
-    if (fclose(rescache))
-        res = ERR_SYS;
-    return res;
+    CLEANUP (
+        remove(descfname);
+        cl_pdir: closedir(pd);
+        cl_rescache: fclose(rescache))
 }
 
-int 
+result 
 lookup_entries(const lookupthread_args *args) {
     return lookup_entries_args(args->descfname, args->startpoint, args->endpoint, 
         args->outfd, args->patchdir, args->searchargs, args->mutex);
