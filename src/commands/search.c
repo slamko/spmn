@@ -14,7 +14,7 @@
 #include <ctype.h>
 #include <pwd.h>
 #include "commands/search.h"
-#include "deftypes.h"
+#include "def.h"
 #include "utils/entry-utils.h"
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
@@ -233,6 +233,7 @@ lookup_entries_args(const char *descfname,
         }
     }
 
+    RET_OK_CLEANUP()
     CLEANUP (
         remove(descfname);
         cl_pdir: closedir(pd);

@@ -16,6 +16,28 @@ static const char *const QUITE_ARG      =  "-q";
 static const char *const CHANGE_DIR_OPT =  "-C";
 static const char *const SUCKLESS_REPO  =  "git://git.suckless.org/sites";
 
+static int 
+git_pull(const char *base_cache_repo) {
+    return execl(GIT_CMD, 
+        GIT_CMD, 
+        CHANGE_DIR_OPT, 
+        base_cache_repo, 
+        PULL_CMD, 
+        QUITE_ARG,
+        SUCKLESS_REPO, 
+        (char *)NULL);
+}
+
+static int 
+git_clone(const char *base_cache_repo) {
+    return execl(GIT_CMD, 
+        GIT_CMD, 
+        CLONE_CMD, 
+        SUCKLESS_REPO, 
+        base_cache_repo,
+        (char *)NULL);
+}
+
 result
 run_sync(const char *basecacherepo, int *gitclone_st) {
     pid_t gitpid;
@@ -25,22 +47,12 @@ run_sync(const char *basecacherepo, int *gitclone_st) {
 
     if (gitpid == 0) {
         TRY (check_baserepo_exists(basecacherepo), 
-            UNWRAP_NEG (execl(GIT_CMD, 
-                    GIT_CMD, 
-                    CHANGE_DIR_OPT, 
-                    basecacherepo, 
-                    PULL_CMD, 
-                    QUITE_ARG,
-                    SUCKLESS_REPO, 
-                    (char *)NULL)) 
+            UNWRAP_NEG (
+                git_pull(basecacherepo)
+            ) 
         )
 
-        UNWRAP_NEG (execl(GIT_CMD, 
-                    GIT_CMD, 
-                    CLONE_CMD, 
-                    SUCKLESS_REPO, 
-                    basecacherepo,
-                    (char *)NULL)) 
+        UNWRAP_NEG (git_clone(basecacherepo)) 
     } 
 
     UNWRAP_NEG (waitpid(gitpid, gitclone_st, 0))

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "deftypes.h"
+#include "def.h"
 #include "utils/logutils.h"
 
 void 
@@ -16,14 +16,10 @@ error(const char* err_format, ...) {
 
 void bug(const char *bug_msg, ...) {
     va_list args;
-    int bugmsg_len;
-    size_t bugmsg_size;
-    char *err = NULL;
 
     fprintf(stderr, BUG_PREFIX, __FILE__, __LINE__, "\n");
-    vfprintf(stderr, err, args);
+    vfprintf(stderr, bug_msg, args);
     fprintf(stderr, "\n");
-    free(err);
     va_end(args);
 }
 

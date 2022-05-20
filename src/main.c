@@ -17,7 +17,6 @@
 #include <pwd.h>
 #include <time.h>
 #include "def.h"
-#define DEF_TYPES
 
 #include "commands/runsearch.h"
 #include "commands/sync.h"

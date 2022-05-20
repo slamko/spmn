@@ -1,10 +1,13 @@
-#include "deftypes.h"
+#include "def.h"
 
 result 
-load() {
+loadp(const char *basecacherepo) {
+    (void)basecacherepo;
     return OK;
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
-    return load();
+    (void)argv;
+    (void)argc;
+    return loadp(basecacherepo);
 }

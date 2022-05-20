@@ -8,11 +8,12 @@
 #include "utils/pathutils.h"
 #include "def.h"
 
-static const char *const XDG_OPEN   = "/bin/xdg-open";
-static const char *const HTTPS_PREF = "https://";
-static const HTTPS_PLEN             = sizeof(HTTPS_PREF);
+#define HTTPS_PREF "https://"
 
-result 
+static const char *const XDG_OPEN   = "/bin/xdg-open";
+static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
+
+static result 
 xdg_open(const char *url) {
     int openst;
     
@@ -40,7 +41,7 @@ build_url(char **url, const char *toolpath, const char *patch_name, size_t patch
     *url = calloc(url_len, sizeof(**url));
     UNWRAP_PTR(*url)
 
-    if (snprintf(*url, url_len, "%s%s%s", HTTPS_PREF, toolpath, patch_name) != 3) {
+    if (snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name) != 2) {
         ERROR(ERR_LOCAL)
     }
 
@@ -82,7 +83,7 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     UNWRAP_CLEANUP (xdg_open(url))
 
     CLEANUP(
-        free_tooldir: free(tooldir);
+        free(tooldir);
         free_toolpath: free(toolpath))
 }
 

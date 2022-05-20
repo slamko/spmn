@@ -209,10 +209,10 @@ cleanup_threadargs(lookupthread_args *thargs) {
     cleanup_searchargs(thargs->searchargs);
     free(thargs);
 }
-
+/*
 int 
 run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
-    /*pthread_t *threadpool;
+    pthread_t *threadpool;
     pthread_mutex_t fmutex;
     lookupthread_args *thargs;
     FILE *rescache;
@@ -273,9 +273,9 @@ run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
 cleanup:
     fclose(rescache);
     remove(rescachename);
-    return !!res;*/
+    return !!res;
     return 0;
-}
+}*/
 
 int run_search(char *patchdir, searchsyms *searchargs) {
     DIR *pd = NULL;
@@ -293,13 +293,14 @@ int run_search(char *patchdir, searchsyms *searchargs) {
     UNWRAP (closedir(pd))
     
     if (worth_multithread(tentrycnt)) {
-        ZIC_RESULT = run_multithreaded(patchdir, searchargs, tentrycnt);
+        ZIC_RESULT = /*run_multithreaded(patchdir, searchargs, tentrycnt);*/ 0;
     } else {
         lookupthread_args thargs = {0};
         lookupthread_args *thargsp = NULL;
 
         UNWRAP (
-            setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL))
+            setup_threadargs(&thargs, 0, 1, tentrycnt, STDOUT_FILENO, searchargs, patchdir, NULL)
+        )
         
         thargsp = &thargs;
 
@@ -334,10 +335,12 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
         HANDLE_CLEANUP("Invalid search string")
     )
 
-    ZIC_RESULT = run_search(patchdir, searchargs);
+    TRY (run_search(patchdir, searchargs), 
+        CATCH(ERR_SYS, HANDLE_SYS())
+    )
 
     CLEANUP(
-        cl_searchargs: free(searchargs);
+        free(searchargs);
         cl_patchdir: free(patchdir)
     )
 }

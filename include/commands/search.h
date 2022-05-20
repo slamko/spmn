@@ -1,4 +1,5 @@
 #include <pthread.h>
+#include "def.h"
 
 typedef struct searchargs {
     char **words; 
