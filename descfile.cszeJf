@@ -1,0 +1,13 @@
+
+Allows each tag to be an independent/unique color
+when selected.
+
+Inspired by colorful 90s & 2000s software.
+
+### rainbowtags-6.1
+Two arrays of colors (tagselfg, tagselbg) are used
+for tags in place of selfgcolor and selbgcolor.
+
+### rainbowtags-6.2
+A two dimensional array for defining foreground and background color per tag.
+
