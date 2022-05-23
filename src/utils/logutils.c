@@ -17,7 +17,7 @@ error(const char* err_format, ...) {
 void bug(const char *bug_msg, ...) {
     va_list args;
 
-    fprintf(stderr, BUG_PREFIX, __FILE__, __LINE__, "\n");
+    fprintf(stderr, BUG_PREFIX, __FILE__, __LINE__, "");
     vfprintf(stderr, bug_msg, args);
     fprintf(stderr, "\n");
     va_end(args);

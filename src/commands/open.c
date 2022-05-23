@@ -27,7 +27,7 @@ xdg_open(const char *url) {
         }
     } 
 
-    wait(&openst);
+    UNWRAP_NEG (wait(&openst))
     return !!openst;
 }
 
@@ -40,11 +40,8 @@ build_url(char **url, const char *toolpath, const char *patch_name, size_t patch
 
     *url = calloc(url_len, sizeof(**url));
     UNWRAP_PTR(*url)
-
-    if (snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name) != 2) {
-        ERROR(ERR_LOCAL)
-    }
-
+    UNWRAP_NEG(snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name))
+    
     RET_OK()
 }
 
@@ -78,9 +75,13 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
         HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
     )
 
-    UNWRAP_CLEANUP (build_url(&url, toolpath, patch_name, patchn_len))
+    TRY (build_url(&url, toolpath, patch_name, patchn_len), 
+        ERROR_CLEANUP(ERR_LOCAL)
+    )
     
-    UNWRAP_CLEANUP (xdg_open(url))
+    TRY (xdg_open(url),
+        ERROR_CLEANUP(ERR_SYS)
+    )
 
     CLEANUP(
         free(tooldir);
@@ -100,7 +101,8 @@ parse_open_args(int argc, char **argv, const char *basecacherepo) {
         )
 
         CATCH(ERR_LOCAL,
-            HANDLE_NO_FORMAT (bug(strerror(errno)))
+            bug(strerror(errno));
+            FAIL()
         )
     )
 

@@ -28,8 +28,12 @@ check_patch_exists(const char *toolpath, const char *patchname) {
 
     UNWRAP (spappend(&full_patch_path, toolpath, patchname))
 
-    UNWRAP_ERR_CLEANUP (stat(full_patch_path, &st), FAIL)
-    CLEANUP (free(full_patch_path))
+    TRY (stat(full_patch_path, &st), 
+        FAIL()
+    )
+    
+    free(full_patch_path);
+    ZIC_RETURN_RESULT()
 }
 
 result 

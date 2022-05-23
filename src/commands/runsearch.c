@@ -329,18 +329,18 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     )
 
     searchargs = calloc(1, sizeof(*searchargs));
-    UNWRAP_PTR (searchargs, cl_patchdir)
+    if (searchargs) {
+        free(patchdir);
+    }
 
     TRY (parse_search_symbols(searchargs, argv + startp, argc - startp), 
-        HANDLE_CLEANUP("Invalid search string")
+        HANDLE("Invalid search string")
+        free(patchdir);
+        free(searchargs);
     )
 
     TRY (run_search(patchdir, searchargs), 
         CATCH(ERR_SYS, HANDLE_SYS())
     )
-
-    CLEANUP(
-        free(searchargs);
-        cl_patchdir: free(patchdir)
-    )
+    ZIC_RETURN_RESULT()
 }
