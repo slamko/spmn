@@ -1,3 +1,0 @@
-
-This patch adds a function named `goback` which allows activating the previously active tagset and binds it to *MODKEY+g*. Unlike dwm's `view` function (bound to *MODKEY+Tab* by default), `goback` registers when you focus another monitor.
-
