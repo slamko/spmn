@@ -8,6 +8,8 @@ result spappend(char **bufp, const char *base, const char *append);
 
 result bufpappend(char *buf, const char *append);
 
+result bufnpappend(char *buf, const char *append, size_t nmax);
+
 result append_patch_path(char **pbuf, const char *toolpath, const char *patchname);
 
 result check_patch_exists(const char *toolpath, const char *patchname);

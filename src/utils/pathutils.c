@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -72,6 +73,14 @@ bufpappend(char *buf, const char *append) {
     UNWRAP_PTR_ERR (buf, ERR_LOCAL)
 
     strncat(buf, append, PATHBUF);
+    RET_OK();
+}
+
+result
+bufnpappend(char *buf, const char *append, size_t nmax) {
+    UNWRAP_PTR_ERR (buf, ERR_LOCAL)
+
+    strncat(buf, append, nmax);
     RET_OK();
 }
 

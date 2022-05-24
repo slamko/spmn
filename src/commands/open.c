@@ -8,10 +8,7 @@
 #include "utils/pathutils.h"
 #include "def.h"
 
-#define HTTPS_PREF "https://"
-
 static const char *const XDG_OPEN   = "/bin/xdg-open";
-static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
 
 static result 
 xdg_open(const char *url) {
@@ -36,7 +33,7 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     char *url = NULL;
     ZIC_RESULT_INIT()
 
-    UNWRAP (build_patch_url(url, toolname, patch_name, basecacherepo))
+    UNWRAP (build_patch_url(&url, toolname, patch_name, basecacherepo))
     
     TRY (xdg_open(url),
         ERROR_CLEANUP(ERR_SYS)

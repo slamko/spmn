@@ -1,0 +1,164 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/main.c",
+      "-o",
+      "build/main.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/main.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/utils/entry-utils.c",
+      "-o",
+      "build/utils/entry-utils.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/utils/entry-utils.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/utils/entry-utils.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/utils/logutils.c",
+      "-o",
+      "build/utils/logutils.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/utils/logutils.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/utils/logutils.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/utils/pathutils.c",
+      "-o",
+      "build/utils/pathutils.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/utils/pathutils.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/utils/pathutils.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/commands/download.c",
+      "-o",
+      "build/commands/download.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/commands/download.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/commands/download.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/commands/open.c",
+      "-o",
+      "build/commands/open.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/commands/open.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/commands/open.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/commands/runsearch.c",
+      "-o",
+      "build/commands/runsearch.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/commands/runsearch.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/commands/runsearch.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/commands/search.c",
+      "-o",
+      "build/commands/search.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/commands/search.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/commands/search.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-pedantic",
+      "-g",
+      "-Iinclude/",
+      "-c",
+      "src/commands/sync.c",
+      "-o",
+      "build/commands/sync.o"
+    ],
+    "directory": "/home/slamko/docs/proj/cc/sls",
+    "file": "/home/slamko/docs/proj/cc/sls/src/commands/sync.c",
+    "output": "/home/slamko/docs/proj/cc/sls/build/commands/sync.o"
+  }
+]

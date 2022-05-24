@@ -7,7 +7,10 @@
 #include <sys/stat.h>
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
+#include "utils/entry-utils.h"
 #include "def.h"
+
+static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
 
 result
 append_patchmd(char **buf, const char *patchdir, char *patch) {
@@ -23,7 +26,7 @@ append_patchmd(char **buf, const char *patchdir, char *patch) {
 result
 check_patch_path_exists(const char *ppath) {
     struct stat st = {0};
-    return stat(ppath, &st)
+    return stat(ppath, &st);
 }
 
 result
@@ -57,29 +60,21 @@ check_entrname_valid(const char *entryname, const int enamelen) {
     FAIL();
 }
 
-
 result 
-build_url(char **url, const char *toolpath, const char *patch_name, size_t patchn_len) {
-    size_t toolpath_len, url_len;
-
-    toolpath_len = strnlen(toolpath, LINEBUF);
-    url_len = HTTPS_PLEN + toolpath_len + patchn_len;
-
-    *url = calloc(url_len, sizeof(**url));
-    UNWRAP_PTR(*url)
-    UNWRAP_NEG(snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name))
-    
-    RET_OK()
+build_url(char **url, const char *patch_path) {
+    return spappend(url, HTTPS_PREF,patch_path);
 }
 
 result 
 build_patch_path(char **path, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
     size_t toolname_len;
-    char *toolpath = NULL, *tooldir = NULL;
+    char *toolpath = NULL, *full_pdir = NULL;
 
     ZIC_RESULT_INIT()
 
     toolname_len = strnlen(toolname, ENTRYLEN);
+    *path = calloc(toolname_len + patchn_len, sizeof(**path)); 
+    UNWRAP_PTR (*path)
 
     TRY (check_entrname_valid(patch_name, patchn_len),
         HANDLE("Invalid patch name: '%s'", patch_name))
@@ -94,12 +89,14 @@ build_patch_path(char **path, const char *toolname, const char *patch_name, size
         CATCH(ERR_SYS, ERROR(ERR_SYS))
     )
 
-    UNWRAP (spappend(path, toolpath, patchname))
+    UNWRAP (bufnpappend(*path, toolpath, toolname_len))
+    UNWRAP (bufnpappend(*path, patch_name, patchn_len))
+    UNWRAP (spappend(&full_pdir, HTTPS_PREF, *path))
 
-    TRY (check_patch_path_exists(*path),
+    TRY (check_patch_path_exists(full_pdir),
         HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
     )
-    CLEANUP(free(tooldir))
+    CLEANUP(free(full_pdir))
 }
 
 result 
@@ -108,11 +105,11 @@ build_patch_url(char **url, const char *toolname, const char *patch_name, const 
     char *patch_path = NULL;
     ZIC_RESULT_INIT()
 
-    patchn_len = strnlen(patch_name, ENTRYLEN)
+    patchn_len = strnlen(patch_name, ENTRYLEN);
 
     UNWRAP_CLEANUP (build_patch_path(&patch_path, toolname, patch_name, patchn_len, basecacherepo))
 
-    TRY (build_url(url, patch_path, patch_name, patchn_len), 
+    TRY (build_url(url, patch_path), 
         ERROR_CLEANUP(ERR_LOCAL)
     )
 
