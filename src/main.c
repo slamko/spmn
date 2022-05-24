@@ -41,6 +41,13 @@ enum command {
     DOWNLOAD = 3
 };
 
+int
+local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
+    return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D || 
+        (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) || 
+        (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D);
+}
+
 result
 try_sync_caches(const char *basecacherepo) {
     struct stat cache_sb = {0};
@@ -56,9 +63,7 @@ try_sync_caches(const char *basecacherepo) {
     cttm = gmtime(&curtime);
     lmttm = gmtime(&lastmtime);
 
-    if (cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D || 
-        (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) || 
-        (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D)) {
+    if (local_repo_is_obsolete(cttm, lmttm)) {
         return run_sync();
     }
     RET_OK();

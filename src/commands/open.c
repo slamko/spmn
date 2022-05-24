@@ -32,60 +32,17 @@ xdg_open(const char *url) {
 }
 
 result 
-build_url(char **url, const char *toolpath, const char *patch_name, size_t patchn_len) {
-    size_t toolpath_len, url_len;
-
-    toolpath_len = strnlen(toolpath, LINEBUF);
-    url_len = HTTPS_PLEN + toolpath_len + patchn_len;
-
-    *url = calloc(url_len, sizeof(**url));
-    UNWRAP_PTR(*url)
-    UNWRAP_NEG(snprintf(*url, url_len, HTTPS_PREF "%s%s", toolpath, patch_name))
-    
-    RET_OK()
-}
-
-result 
 openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
-    size_t patchn_len, toolname_len;
-    char *toolpath = NULL, *tooldir = NULL, *url = NULL;
-
+    char *url = NULL;
     ZIC_RESULT_INIT()
 
-    patchn_len = strnlen(patch_name, ENTRYLEN);
-    toolname_len = strnlen(toolname, ENTRYLEN);
-
-    TRY (check_entrname_valid(patch_name, patchn_len),
-        HANDLE("Invalid patch name: '%s'", patch_name))
-
-    TRY (check_entrname_valid(toolname, toolname_len),
-        HANDLE("Invalid tool name: '%s'", toolname))
-
-    TRY (get_tool_path(&toolpath, basecacherepo, toolname),
-        CATCH(ERR_ENTRY_NOT_FOUND, 
-            HANDLE("Suckless tool with name: '%s' not found", toolname))
-
-        CATCH(ERR_SYS, ERROR(ERR_SYS))
-    )
-
-    TRY (append_tooldir(&tooldir, basecacherepo, toolpath), 
-        ERROR(ERR_SYS, free_toolpath))
-
-    TRY (check_patch_exists(tooldir, patch_name),
-        HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
-    )
-
-    TRY (build_url(&url, toolpath, patch_name, patchn_len), 
-        ERROR_CLEANUP(ERR_LOCAL)
-    )
+    UNWRAP (build_patch_url(url, toolname, patch_name, basecacherepo))
     
     TRY (xdg_open(url),
         ERROR_CLEANUP(ERR_SYS)
     )
 
-    CLEANUP(
-        free(tooldir);
-        free_toolpath: free(toolpath))
+    CLEANUP(free(url))
 }
 
 result
