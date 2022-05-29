@@ -25,7 +25,7 @@ void bug(const char *bug_msg, ...) {
 
 void
 print_usage(void) {
-    printf("usage: sise <tool> <keywords>\n");
+    printf("usage: sise [command] <tool> <keywords>\n");
 }
 
 void 

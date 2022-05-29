@@ -10,7 +10,7 @@
 #include "utils/entry-utils.h"
 #include "def.h"
 
-static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
+//static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
 
 result
 append_patchmd(char **buf, const char *patchdir, char *patch) {

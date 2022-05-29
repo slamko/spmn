@@ -92,7 +92,7 @@ parse_search_symbols(searchsyms *sargs, char **sstrings, int scount){
     sargs->words = words;
     sargs->searchstr = pubsearchstr;
     sargs->wordcount = tstrcnt;
-    return 0;
+    ZIC_RETURN_RESULT();
 }
 
 int
@@ -329,7 +329,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     )
 
     searchargs = calloc(1, sizeof(*searchargs));
-    UNWRAP_PTR (searchargs, cl_pdir)
+    UNWRAP_PTR_LABEL (searchargs, cl_pdir)
 
     TRY (parse_search_symbols(searchargs, argv + startp, argc - startp), 
         HANDLE_CLEANUP("Invalid search string")

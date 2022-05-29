@@ -1,7 +1,7 @@
 CC=gcc
 TARGET=sise
-LIBS=-pthread -lm -lbsd
-WEFLAGS=-Wall -Wextra -Werror -pedantic
+LIBS=-pthread -lm -lbsd 
+WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
 CFLAGS=$(WEFLAGS) -g -Iinclude/
 
 SRCD=src
@@ -26,7 +26,7 @@ HEADERS=$(HEADERSMAIN) $(HEADERSUTILS) $(HEADERSCMD)
 all: $(TARGET) $(OBJDIRS)
 
 $(TARGET) : $(OBJS)
-	$(CC) $(CFLAGS) -lbsd $^ $(LIBS) -o $@
+	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
 
 $(OBJDIRS):
 	mkdir -p $@

@@ -197,7 +197,7 @@ lookup_entries_args(const char *descfname,
     rescache = fdopen(outfd, "w");
     UNWRAP_PTR (rescache)
 
-    UNWRAP_PTR (pd = opendir(patchdir), cl_rescache)
+    UNWRAP_PTR_LABEL (pd = opendir(patchdir), cl_rescache)
     
     for (int entrid = 1;
         (pdir = readdir(pd)) && 
@@ -208,7 +208,7 @@ lookup_entries_args(const char *descfname,
             FILE *descfile = NULL;
             char *indexmd = NULL; 
 
-            UNWRAP_PTR (descfile = fopen(descfname, "w+"), cl_pdir)
+            UNWRAP_PTR_LABEL (descfile = fopen(descfname, "w+"), cl_pdir)
 
             UNWRAP_CLEANUP (append_patchmd(&indexmd, patchdir, pdir->d_name))
 

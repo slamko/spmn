@@ -54,8 +54,6 @@ try_sync_caches(const char *basecacherepo) {
     time_t lastmtime, curtime;
     struct tm *lmttm = NULL, *cttm = NULL;
 
-    ZIC_RESULT_INIT()
-
     UNWRAP (stat(basecacherepo, &cache_sb))
     
     lastmtime = cache_sb.st_mtim.tv_sec;
