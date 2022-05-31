@@ -45,6 +45,28 @@ check_isdir(const struct dirent *dir) {
     }
 }
 
+
+result
+snpappend(char **bufp, const char *base, const char *append, size_t base_len) {
+    char *buf = NULL;
+    size_t pnamelen;
+
+    if (!base || !append)
+        ERROR(ERR_LOCAL);
+
+    pnamelen = strlen(append);
+
+    *bufp = calloc(base_len + pnamelen + 1, sizeof(**bufp));
+    UNWRAP_PTR(*bufp)
+
+    buf = *bufp;
+
+    strncpy(buf, base, base_len);
+    strncat(buf, append, pnamelen);
+
+    RET_OK();
+}
+
 result
 spappend(char **bufp, const char *base, const char *append) {
     char *buf = NULL;

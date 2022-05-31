@@ -1,10 +1,13 @@
 #include <stdbool.h>
 #include <dirent.h>
+#include <stddef.h>
 #include "def.h"
 
 result check_isdir(const struct dirent *dir);
 
 result spappend(char **bufp, const char *base, const char *append);
+
+result snpappend(char **bufp, const char *base, const char *append, size_t base_len);
 
 result bufpappend(char *buf, const char *append);
 

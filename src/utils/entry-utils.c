@@ -68,7 +68,7 @@ build_url(char **url, const char *patch_path) {
 result 
 build_patch_path(char **path, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
     size_t toolname_len;
-    char *toolpath = NULL, *full_pdir = NULL;
+    char *full_pdir = NULL;
 
     ZIC_RESULT_INIT()
 
@@ -82,16 +82,15 @@ build_patch_path(char **path, const char *toolname, const char *patch_name, size
     TRY (check_entrname_valid(toolname, toolname_len),
         HANDLE("Invalid tool name: '%s'", toolname))
 
-    TRY (get_tool_path(&toolpath, basecacherepo, toolname),
+    TRY (get_tool_path(path, basecacherepo, toolname),
         CATCH(ERR_ENTRY_NOT_FOUND, 
             HANDLE("Suckless tool with name: '%s' not found", toolname))
 
         CATCH(ERR_SYS, ERROR(ERR_SYS))
     )
 
-    UNWRAP (bufnpappend(*path, toolpath, toolname_len))
     UNWRAP (bufnpappend(*path, patch_name, patchn_len))
-    UNWRAP (spappend(&full_pdir, HTTPS_PREF, *path))
+    UNWRAP (snpappend(&full_pdir, basecacherepo, *path, PATHBUF))
 
     TRY (check_patch_path_exists(full_pdir),
         HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
