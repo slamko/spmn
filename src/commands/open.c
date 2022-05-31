@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -22,13 +23,13 @@ xdg_open(const char *url) {
             EPERROR()
             exit(1);
         }
-    } 
+    }
 
     UNWRAP_NEG (wait(&openst))
     return !!openst;
 }
 
-result 
+result
 openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     char *url = NULL;
     ZIC_RESULT_INIT()
@@ -40,6 +41,20 @@ openp(const char *toolname, const char *patch_name, const char *basecacherepo) {
     )
 
     CLEANUP(free(url))
+}
+
+result
+print_pdescription(const char *toolname, const char *patch_name, const char *basecacherepo) {
+    char *pdir = NULL, *md = NULL;
+    size_t patchn_len;
+    ZIC_RESULT_INIT()
+
+    patchn_len = strnlen(patch_name, ENTRYLEN);
+    UNWRAP_CLEANUP (build_patch_dir(&pdir, toolname, patch_name, patchn_len, basecacherepo))
+    UNWRAP_CLEANUP (spappend(&md, pdir, INDEXMD))
+
+    // print patch readme
+
 }
 
 result

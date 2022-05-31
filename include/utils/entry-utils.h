@@ -1,4 +1,5 @@
 #include "def.h"
+#include <stddef.h>
 
 #define HTTPS_PREF "https://"
 
@@ -8,6 +9,10 @@ int check_entrname_valid(const char *entryname, const int enamelen);
 
 result build_patch_path(char **path, const char *toolname, 
                         const char *patch_name, size_t patchn_len, 
+                        const char *basecacherepo);
+
+result build_patch_dir(char **pdir, const char *toolname,
+                        const char *patch_name, size_t patchn_len,
                         const char *basecacherepo);
 
 result build_patch_url(char **url, const char *toolname, 

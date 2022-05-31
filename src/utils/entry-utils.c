@@ -68,7 +68,6 @@ build_url(char **url, const char *patch_path) {
 result 
 build_patch_path(char **path, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
     size_t toolname_len;
-    char *full_pdir = NULL;
 
     ZIC_RESULT_INIT()
 
@@ -90,12 +89,39 @@ build_patch_path(char **path, const char *toolname, const char *patch_name, size
     )
 
     UNWRAP (bufnpappend(*path, patch_name, patchn_len))
-    UNWRAP (snpappend(&full_pdir, basecacherepo, *path, PATHBUF))
+    ZIC_RETURN_RESULT()
+}
 
-    TRY (check_patch_path_exists(full_pdir),
-        HANDLE_CLEANUP("A patch with name: '%s' not found", patch_name)
+result
+append_patch_dir(char **full_pdir, char *ppath, const char *patch_name, const char *basecacherepo) {
+    ZIC_RESULT_INIT()
+
+    UNWRAP (snpappend(full_pdir, basecacherepo, ppath, PATHBUF))
+
+    TRY (check_patch_path_exists(*full_pdir),
+        HANDLE("A patch with name: '%s' not found", patch_name)
     )
+    ZIC_RETURN_RESULT()
+}
+
+result
+check_patch_dir(char *ppath, const char *patch_name, const char *basecacherepo) {
+    char *full_pdir = NULL;
+    ZIC_RESULT_INIT()
+
+    RES_UNWRAP_CLEANUP (append_patch_dir(&full_pdir, ppath, patch_name, basecacherepo))
+
     CLEANUP(free(full_pdir))
+}
+
+result
+build_patch_dir(char **pdir, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
+    char *ppath = NULL;
+    ZIC_RESULT_INIT()
+
+    RES_UNWRAP (build_patch_path(&ppath, toolname, patch_name, patchn_len, basecacherepo))
+    RES_UNWRAP_CLEANUP(append_patch_dir(pdir, ppath, patch_name, basecacherepo))
+    CLEANUP(free(ppath))
 }
 
 result 
@@ -107,6 +133,7 @@ build_patch_url(char **url, const char *toolname, const char *patch_name, const 
     patchn_len = strnlen(patch_name, ENTRYLEN);
 
     UNWRAP_CLEANUP (build_patch_path(&patch_path, toolname, patch_name, patchn_len, basecacherepo))
+    UNWRAP_CLEANUP (check_patch_dir(patch_path, patch_name, basecacherepo))
 
     TRY (build_url(url, patch_path), 
         ERROR_CLEANUP(ERR_LOCAL)
