@@ -62,14 +62,18 @@ print_pdescription(const char *toolname, const char *patch_name, const char *bas
 
     UNWRAP_LABEL (stat(md, &sp), cl_pdir)
 
+    patchf = fopen(md, "r");
+    UNWRAP_PTR_LABEL(patchf, cl_pdir)
+
     print_buf = calloc(sp.st_size, sizeof(*print_buf));
-    UNWRAP_PTR_LABEL (print_buf, cl_pdir)
+    UNWRAP_PTR_LABEL (print_buf, cl_bufclose)
 
     UNWRAP_NEG_CLEANUP (fread(print_buf, sizeof(*print_buf), sp.st_size, patchf))
     UNWRAP_NEG_CLEANUP (write(STDOUT_FILENO, print_buf, sp.st_size))
 
     CLEANUP (
         free(print_buf);
+        cl_bufclose: fclose(patchf);
         cl_pdir: free(pdir)
     )
 }
@@ -91,7 +95,7 @@ parse_open_args(int argc, char **argv, const char *basecacherepo) {
         }
     }
 
-    if (argc != 4)
+    if (argc < 4)
         ERROR (ERR_INVARG)
 
     openf = &print_pdescription;

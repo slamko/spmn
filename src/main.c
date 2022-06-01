@@ -89,6 +89,7 @@ int
 main(int argc, char **argv) {
     char *basecacherepo;
     enum command cmd;
+    ZIC_RESULT_INIT()
 
     if (parse_command(argc, argv, &cmd)) {
         print_usage();
@@ -110,5 +111,7 @@ main(int argc, char **argv) {
         }
     }
 
-    return commands[(int)cmd](argc, argv, basecacherepo);
+    TRY (commands[(int)cmd](argc, argv, basecacherepo), )
+
+    free(basecacherepo);
 }

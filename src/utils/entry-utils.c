@@ -47,97 +47,97 @@ check_patch_exists(const char *toolpath, const char *patchname) {
 result 
 check_entrname_valid(const char *entryname, const int enamelen) {
     if (!entryname ||
-        *entryname == '\0' ||
-        enamelen == 0 ||
-        enamelen > MAXSEARCH_LEN ||
-        (enamelen == 1 && isspace(*entryname)))
+            *entryname == '\0' ||
+            enamelen == 0 ||
+            enamelen > MAXSEARCH_LEN ||
+            (enamelen == 1 && isspace(*entryname)))
+            FAIL();
+
+        for (int i = 0; i < enamelen; i++) {
+            if (!isspace(entryname[i]))
+                RET_OK();
+        }
         FAIL();
-
-    for (int i = 0; i < enamelen; i++) {
-        if (!isspace(entryname[i]))
-            RET_OK();
     }
-    FAIL();
-}
 
-result 
-build_url(char **url, const char *patch_path) {
-    return spappend(url, HTTPS_PREF,patch_path);
-}
+    result 
+    build_url(char **url, const char *patch_path) {
+        return spappend(url, HTTPS_PREF,patch_path);
+    }
 
-result 
-build_patch_path(char **path, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
-    size_t toolname_len;
+    result 
+    build_patch_path(char **path, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
+        size_t toolname_len;
 
-    ZIC_RESULT_INIT()
+        ZIC_RESULT_INIT()
 
-    toolname_len = strnlen(toolname, ENTRYLEN);
-    *path = calloc(toolname_len + patchn_len, sizeof(**path)); 
-    UNWRAP_PTR (*path)
+        toolname_len = strnlen(toolname, ENTRYLEN);
+        *path = calloc(toolname_len + patchn_len + 1, sizeof(**path));
+        UNWRAP_PTR (*path)
 
-    TRY (check_entrname_valid(patch_name, patchn_len),
-        HANDLE("Invalid patch name: '%s'", patch_name))
+        TRY (check_entrname_valid(patch_name, patchn_len),
+            HANDLE("Invalid patch name: '%s'", patch_name))
 
-    TRY (check_entrname_valid(toolname, toolname_len),
-        HANDLE("Invalid tool name: '%s'", toolname))
+        TRY (check_entrname_valid(toolname, toolname_len),
+            HANDLE("Invalid tool name: '%s'", toolname))
 
-    TRY (get_tool_path(path, basecacherepo, toolname),
-        CATCH(ERR_ENTRY_NOT_FOUND, 
-            HANDLE("Suckless tool with name: '%s' not found", toolname))
+        TRY (get_tool_path(path, basecacherepo, toolname),
+            CATCH(ERR_ENTRY_NOT_FOUND, 
+                HANDLE("Suckless tool with name: '%s' not found", toolname))
 
-        CATCH(ERR_SYS, ERROR(ERR_SYS))
-    )
+            CATCH(ERR_SYS, ERROR(ERR_SYS))
+        )
 
-    UNWRAP (bufnpappend(*path, patch_name, patchn_len))
-    ZIC_RETURN_RESULT()
-}
+        UNWRAP (bufnpappend(*path, patch_name, patchn_len))
+        ZIC_RETURN_RESULT()
+    }
 
-result
-append_patch_dir(char **full_pdir, char *ppath, const char *patch_name, const char *basecacherepo) {
-    ZIC_RESULT_INIT()
+    result
+    append_patch_dir(char **full_pdir, char *ppath, const char *patch_name, const char *basecacherepo) {
+        ZIC_RESULT_INIT()
 
-    UNWRAP (snpappend(full_pdir, basecacherepo, ppath, PATHBUF))
+        UNWRAP (snpappend(full_pdir, basecacherepo, ppath, PATHBUF))
 
-    TRY (check_patch_path_exists(*full_pdir),
-        HANDLE("A patch with name: '%s' not found", patch_name)
-    )
-    ZIC_RETURN_RESULT()
-}
+        TRY (check_patch_path_exists(*full_pdir),
+            HANDLE("A patch with name: '%s' not found", patch_name)
+        )
+        ZIC_RETURN_RESULT()
+    }
 
-result
-check_patch_dir(char *ppath, const char *patch_name, const char *basecacherepo) {
-    char *full_pdir = NULL;
-    ZIC_RESULT_INIT()
+    result
+    check_patch_dir(char *ppath, const char *patch_name, const char *basecacherepo) {
+        char *full_pdir = NULL;
+        ZIC_RESULT_INIT()
 
-    RES_UNWRAP_CLEANUP (append_patch_dir(&full_pdir, ppath, patch_name, basecacherepo))
+        RES_UNWRAP_CLEANUP (append_patch_dir(&full_pdir, ppath, patch_name, basecacherepo))
 
-    CLEANUP(free(full_pdir))
-}
+        CLEANUP(free(full_pdir))
+    }
 
-result
-build_patch_dir(char **pdir, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
-    char *ppath = NULL;
-    ZIC_RESULT_INIT()
+    result
+    build_patch_dir(char **pdir, const char *toolname, const char *patch_name, size_t patchn_len, const char *basecacherepo) {
+        char *ppath = NULL;
+        ZIC_RESULT_INIT()
 
-    RES_UNWRAP (build_patch_path(&ppath, toolname, patch_name, patchn_len, basecacherepo))
-    RES_UNWRAP_CLEANUP(append_patch_dir(pdir, ppath, patch_name, basecacherepo))
-    CLEANUP(free(ppath))
-}
+        RES_UNWRAP (build_patch_path(&ppath, toolname, patch_name, patchn_len, basecacherepo))
+        RES_UNWRAP_CLEANUP(append_patch_dir(pdir, ppath, patch_name, basecacherepo))
+        CLEANUP(free(ppath))
+    }
 
-result 
-build_patch_url(char **url, const char *toolname, const char *patch_name, const char *basecacherepo) {
-    size_t patchn_len;
-    char *patch_path = NULL;
-    ZIC_RESULT_INIT()
+    result 
+    build_patch_url(char **url, const char *toolname, const char *patch_name, const char *basecacherepo) {
+        size_t patchn_len;
+        char *patch_path = NULL;
+        ZIC_RESULT_INIT()
 
-    patchn_len = strnlen(patch_name, ENTRYLEN);
+        patchn_len = strnlen(patch_name, ENTRYLEN);
 
-    UNWRAP_CLEANUP (build_patch_path(&patch_path, toolname, patch_name, patchn_len, basecacherepo))
-    UNWRAP_CLEANUP (check_patch_dir(patch_path, patch_name, basecacherepo))
+        UNWRAP_CLEANUP (build_patch_path(&patch_path, toolname, patch_name, patchn_len, basecacherepo))
+        UNWRAP_CLEANUP (check_patch_dir(patch_path, patch_name, basecacherepo))
 
-    TRY (build_url(url, patch_path), 
-        ERROR_CLEANUP(ERR_LOCAL)
-    )
+        TRY (build_url(url, patch_path), 
+            ERROR_CLEANUP(ERR_LOCAL)
+        )
 
-    CLEANUP(free(patch_path))
-}
+        CLEANUP(free(patch_path))
+    }

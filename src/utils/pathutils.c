@@ -132,23 +132,27 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
     char *toolsdir_path = NULL;
     DIR *toolsdir = NULL;
     struct dirent *tool = NULL;
+    ZIC_RESULT_INIT()
 
     *buf = NULL;
     UNWRAP (spappend(&toolsdir_path, basecacherepo, TOOLSDIR))
 
-    UNWRAP_PTR (toolsdir = opendir(toolsdir_path))
+    UNWRAP_PTR_LABEL (toolsdir = opendir(toolsdir_path), cl_pbuf_free)
 
     while ((tool = readdir(toolsdir))) {
         if (IS_OK(check_isdir(tool))) {
             if (IS_OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
-                UNWRAP (
+                UNWRAP_CLEANUP (
                     spappend(buf, TOOLSDIR, tool->d_name))
             }
         } 
     }
-    
-    UNWRAP (closedir(toolsdir))
-    return !!*buf;
+
+    ZIC_RESULT = !!*buf;
+
+    CLEANUP (
+        closedir(toolsdir);
+        cl_pbuf_free: free(toolsdir_path))
 }
 
 result
