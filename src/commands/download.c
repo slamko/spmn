@@ -13,6 +13,7 @@
 #include "sys/sendfile.h"
 
 #define DIFF_FILE_EXT "diff"
+#define ENTER_NUMBER_PROMPT "Enter a number"
 
 result
 diff_f_iter(DIR *ddir, struct dirent **ddirent, char **diff_f) {
@@ -107,6 +108,31 @@ copy_diff_file(const char *diff_f, const char *patch_path) {
 }
 
 result
+read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
+    char read_buf[ENTRYLEN];
+
+	putc('\n', stdout);
+	
+	for (char *prompt_msg = ENTER_NUMBER_PROMPT; true; ) {
+	  printf("\r%s: ", prompt_msg);
+	  UNWRAP_PTR (fgets(read_buf, ENTRYLEN - 1, stdin))
+
+	  if (sscanf(read_buf, "%zu", input_val) != EOF) {
+	    if (*input_val < 0) {
+		  prompt_msg = "Enter non negative number";
+		  continue;
+		} else if (*input_val >= diff_t_len) {
+		  prompt_msg = "Enter a number from the listed range";
+		  continue;
+		}
+		break;
+	  }
+	  prompt_msg = "Enter a number";
+	}
+	RET_OK()
+}
+
+result
 prompt_diff_file(char **diff_table, char **chosen_diff, char *patch_name, size_t diff_f_cnt) {
     size_t usr_input = 0;
     ZIC_RESULT_INIT()
@@ -114,9 +140,10 @@ prompt_diff_file(char **diff_table, char **chosen_diff, char *patch_name, size_t
 	printf("Multiple diff files(%zu) found for patch '%s'. Please choose one:\n", diff_f_cnt, patch_name);
 
 	for (size_t diff_i = 0; diff_i < diff_f_cnt; diff_i++) {
-	  printf("(%zu) %s", diff_i, diff_table[diff_i]);
+	  printf("(%zu) %s\n", diff_i, diff_table[diff_i]);
 	}
 
+	read_prompt_diff_file(&usr_input, diff_f_cnt);
 	*chosen_diff = diff_table[usr_input];
 	RET_OK()
 }
