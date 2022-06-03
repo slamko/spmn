@@ -107,8 +107,18 @@ copy_diff_file(const char *diff_f, const char *patch_path) {
 }
 
 result
-prompt_diff_file(char **diff_table, char **chosen_diff) {
+prompt_diff_file(char **diff_table, char **chosen_diff, char *patch_name, size_t diff_f_cnt) {
+    size_t usr_input = 0;
     ZIC_RESULT_INIT()
+	  
+	printf("Multiple diff files(%zu) found for patch '%s'. Please choose one:\n", diff_f_cnt, patch_name);
+
+	for (size_t diff_i = 0; diff_i < diff_f_cnt; diff_i++) {
+	  printf("(%zu) %s", diff_i, diff_table[diff_i]);
+	}
+
+	*chosen_diff = diff_table[usr_input];
+	RET_OK()
 }
 
 result 
@@ -128,7 +138,7 @@ loadp(const char *toolname, const  char *patchname, const char *basecacherepo) {
 	} else {
 	  char *chosen_diff_f = NULL;
 	  
-	  prompt_diff_file(diff_table, &chosen_diff_f);
+	  prompt_diff_file(diff_table, &chosen_diff_f, diff_t_len);
 	  copy_diff_file(chosen_diff_f, ppath);
 	}
 
