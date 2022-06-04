@@ -109,7 +109,7 @@ copy_diff_file(const char *diff_f, const char *patch_path) {
 
 result
 read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
-    char read_buf[ENTRYLEN];
+    char read_buf[ENTRYLEN] = {0};
 
 	putc('\n', stdout);
 	
@@ -133,19 +133,37 @@ read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
 }
 
 result
-prompt_diff_file(char **diff_table, char **chosen_diff, char *patch_name, size_t diff_f_cnt) {
+prompt_diff_file(char **diff_table, char **chosen_diff, const char *patch_name, size_t diff_f_cnt) {
     size_t usr_input = 0;
-    ZIC_RESULT_INIT()
 	  
 	printf("Multiple diff files(%zu) found for patch '%s'. Please choose one:\n", diff_f_cnt, patch_name);
 
 	for (size_t diff_i = 0; diff_i < diff_f_cnt; diff_i++) {
-	  printf("(%zu) %s\n", diff_i, diff_table[diff_i]);
+	  printf("(%zu) %s\n", diff_i + 1, diff_table[diff_i]);
 	}
 
-	read_prompt_diff_file(&usr_input, diff_f_cnt);
+	UNWRAP (read_prompt_diff_file(&usr_input, diff_f_cnt))
 	*chosen_diff = diff_table[usr_input];
 	RET_OK()
+}
+
+static void
+free_diff_f_table(char **diff_table, size_t diff_t_len) {
+  for (size_t diff_f_i = 0; diff_f_i < diff_t_len; diff_f_i++) {
+	free(diff_table[diff_f_i]);
+  }
+  free(diff_table);
+}
+
+static result
+prompt_for_file_and_load(char **diff_table, char *ppath, const char *patch_name, size_t diff_t_len) {
+	  char *chosen_diff_f = NULL;
+	  ZIC_RESULT_INIT()
+	  
+		UNWRAP (prompt_diff_file(diff_table, &chosen_diff_f, patch_name,  diff_t_len))
+	  UNWRAP_CLEANUP (copy_diff_file(chosen_diff_f, ppath))
+
+	  CLEANUP(free(chosen_diff_f))
 }
 
 result 
@@ -156,20 +174,20 @@ loadp(const char *toolname, const  char *patchname, const char *basecacherepo) {
     ZIC_RESULT_INIT()
       
     patchn_len = strnlen(patchname, ENTRYLEN);
-    build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo);
+    UNWRAP (build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo))
 
-    get_diff_file_list(&diff_table, &diff_t_len, ppath);
+    UNWRAP_LABEL (get_diff_file_list(&diff_table, &diff_t_len, ppath), cl_ppath)
 
     if (diff_t_len == 1) {
-      copy_diff_file(diff_table[0], ppath);
+      UNWRAP_CLEANUP (copy_diff_file(diff_table[0], ppath))
 	} else {
-	  char *chosen_diff_f = NULL;
-	  
-	  prompt_diff_file(diff_table, &chosen_diff_f, diff_t_len);
-	  copy_diff_file(chosen_diff_f, ppath);
+	  UNWRAP_CLEANUP (prompt_for_file_and_load(diff_table, ppath, patchname, diff_t_len))
 	}
 
-    RET_OK()
+    CLEANUP(
+			free_diff_f_table(diff_table, diff_t_len);
+			cl_ppath: free(ppath)
+    )
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
