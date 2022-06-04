@@ -7,7 +7,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include "def.h"
+#include "utils/logutils.h"
 #include "utils/entry-utils.h"
 #include "utils/pathutils.h"
 #include "sys/sendfile.h"
@@ -110,18 +112,19 @@ copy_diff_file(const char *diff_f, const char *patch_path) {
 result
 read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
     char read_buf[ENTRYLEN] = {0};
-
+	long long tmp_input = 0;
+	
 	putc('\n', stdout);
 	
 	for (char *prompt_msg = ENTER_NUMBER_PROMPT; true; ) {
 	  printf("\r%s: ", prompt_msg);
 	  UNWRAP_PTR (fgets(read_buf, ENTRYLEN - 1, stdin))
 
-	  if (sscanf(read_buf, "%zu", input_val) != EOF) {
-	    if (*input_val < 0) {
+	  if (sscanf(read_buf, "%lld", &tmp_input) != EOF) {
+	    if (tmp_input < 0) {
 		  prompt_msg = "Enter non negative number";
 		  continue;
-		} else if (*input_val >= diff_t_len) {
+		} else if (tmp_input >= (long long)diff_t_len) {
 		  prompt_msg = "Enter a number from the listed range";
 		  continue;
 		}
@@ -129,6 +132,7 @@ read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
 	  }
 	  prompt_msg = "Enter a number";
 	}
+	*input_val = tmp_input;
 	RET_OK()
 }
 
@@ -152,18 +156,16 @@ free_diff_f_table(char **diff_table, size_t diff_t_len) {
   for (size_t diff_f_i = 0; diff_f_i < diff_t_len; diff_f_i++) {
 	free(diff_table[diff_f_i]);
   }
-  free(diff_table);
 }
 
 static result
 prompt_for_file_and_load(char **diff_table, char *ppath, const char *patch_name, size_t diff_t_len) {
 	  char *chosen_diff_f = NULL;
-	  ZIC_RESULT_INIT()
 	  
-		UNWRAP (prompt_diff_file(diff_table, &chosen_diff_f, patch_name,  diff_t_len))
-	  UNWRAP_CLEANUP (copy_diff_file(chosen_diff_f, ppath))
+	  UNWRAP (prompt_diff_file(diff_table, &chosen_diff_f, patch_name,  diff_t_len))
+	  UNWRAP (copy_diff_file(chosen_diff_f, ppath))
 
-	  CLEANUP(free(chosen_diff_f))
+	   RET_OK()
 }
 
 result 
@@ -191,7 +193,20 @@ loadp(const char *toolname, const  char *patchname, const char *basecacherepo) {
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
-    (void)argv;
-    (void)argc;
-    return loadp(basecacherepo);
+  ZIC_RESULT_INIT()
+   
+  if (argc < 4)
+        ERROR (ERR_INVARG)
+
+    TRY (loadp(argv[2], argv[3], basecacherepo),
+         CATCH(ERR_SYS,
+            HANDLE_SYS()
+        )
+
+        CATCH(ERR_LOCAL,
+            bug(strerror(errno));
+            FAIL()
+        )
+    )
+		  ZIC_RETURN_RESULT()
 }
