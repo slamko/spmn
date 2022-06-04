@@ -84,19 +84,16 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
   ppath_len = strlen(patch_path);
   tot_buf_len = ppath_len + 1 + strnlen(diff_f, ENTRYLEN) + 1;
   sdiff_path = calloc(tot_buf_len, sizeof(*sdiff_path));
-  char some[4096];
-  getcwd(some, sizeof(some)); 
-  printf("wewefwef\n\n\n%s\n\n\n", some);
-  
+
   snprintf(sdiff_path, tot_buf_len, "%s/%s", patch_path, diff_f);
+
   source_diff = open(sdiff_path, O_RDONLY);
   UNWRAP_NEG_LABEL(source_diff, cl_diff_path)
-	dest_diff = open(diff_f, O_CREAT | O_WRONLY, 0777);
+  dest_diff = open(diff_f, O_CREAT | O_WRONLY, 0640);
   UNWRAP_NEG_LABEL(dest_diff, cl_source_fd)
 
   UNWRAP_NEG_LABEL(stat(sdiff_path, &diff_st), cl_dest_fd)
 
-  // sendfile(dest_diff, source_diff, NULL, diff_st.st_size);
   copy_buf = calloc(diff_st.st_size, sizeof(*copy_buf));
   UNWRAP_PTR_LABEL(copy_buf, cl_dest_fd)
 
@@ -114,7 +111,7 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
 
 result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
   char read_buf[ENTRYLEN] = {0};
-  long long tmp_input = 0;
+  size_t tmp_input = 0;
 
   putc('\n', stdout);
 
@@ -122,17 +119,14 @@ result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
     printf("\r%s: ", prompt_msg);
     UNWRAP_PTR(fgets(read_buf, ENTRYLEN - 1, stdin))
 
-    if (sscanf(read_buf, "%lld", &tmp_input) != EOF) {
-      if (tmp_input < 0) {
-        prompt_msg = "Enter non negative number";
-        continue;
-      } else if (tmp_input >= (long long)diff_t_len) {
-        prompt_msg = "Enter a number from the listed range";
+    if (sscanf(read_buf, "%zu", &tmp_input) != EOF) {
+      if (tmp_input >= diff_t_len) {
+        prompt_msg = "Please enter a number from the listed range";
         continue;
       }
       break;
     }
-    prompt_msg = "Enter a number";
+    prompt_msg = ENTER_NUMBER_PROMPT;
   }
   *input_val = tmp_input;
   RET_OK()
@@ -142,7 +136,7 @@ result prompt_diff_file(char **diff_table, char **chosen_diff,
                         const char *patch_name, size_t diff_f_cnt) {
   size_t usr_input = 0;
 
-  printf("Multiple diff files(%zu) found for patch '%s'. Please choose one:\n",
+  printf("Multiple diff files(%zu) found for patch '%s'. Please, choose one:\n",
          diff_f_cnt, patch_name);
 
   for (size_t diff_i = 0; diff_i < diff_f_cnt; diff_i++) {
