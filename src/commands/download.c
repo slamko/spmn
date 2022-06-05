@@ -13,6 +13,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+DEFINE_ERROR(ERR_NO_DIFF_FILE, 15)
+
 #define DIFF_FILE_EXT "diff"
 #define ENTER_NUMBER_PROMPT "Enter a number"
 
@@ -57,6 +59,11 @@ result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
   size_t diff_total_cnt = 0;
 
   UNWRAP(get_diff_files_cnt(patch_p, &diff_total_cnt))
+
+  if (diff_total_cnt == 0) {
+    ERROR(ERR_NO_DIFF_FILE)
+  }
+
   *diff_table = calloc(diff_total_cnt, sizeof(**diff_table));
   UNWRAP_PTR(*diff_table)
 
@@ -88,14 +95,14 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
   snprintf(sdiff_path, tot_buf_len, "%s/%s", patch_path, diff_f);
 
   source_diff = open(sdiff_path, O_RDONLY);
-  UNWRAP_NEG_LABEL(source_diff, cl_diff_path)
+  UNWRAP_NEG_GOTO(source_diff, cl_diff_path)
   dest_diff = open(diff_f, O_CREAT | O_WRONLY, 0640);
-  UNWRAP_NEG_LABEL(dest_diff, cl_source_fd)
+  UNWRAP_NEG_GOTO(dest_diff, cl_source_fd)
 
-  UNWRAP_NEG_LABEL(stat(sdiff_path, &diff_st), cl_dest_fd)
+  UNWRAP_NEG_GOTO(stat(sdiff_path, &diff_st), cl_dest_fd)
 
   copy_buf = calloc(diff_st.st_size, sizeof(*copy_buf));
-  UNWRAP_PTR_LABEL(copy_buf, cl_dest_fd)
+  UNWRAP_PTR_GOTO(copy_buf, cl_dest_fd)
 
   read_buf_c = read(source_diff, copy_buf, diff_st.st_size);
   UNWRAP_NEG_CLEANUP(read_buf_c)
@@ -171,12 +178,15 @@ result loadp(const char *toolname, const char *patchname,
   char **diff_table = NULL;
   size_t patchn_len, diff_t_len = 0;
   ZIC_RESULT_INIT()
-   
+
   patchn_len = strnlen(patchname, ENTRYLEN);
   UNWRAP(
       build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo))
 
-  UNWRAP_LABEL(get_diff_file_list(&diff_table, &diff_t_len, ppath), cl_ppath)
+  TRY (get_diff_file_list(&diff_table, &diff_t_len, ppath),
+	   CATCH(ERR_NO_DIFF_FILE, HANDLE("No diff files found for patch '%s'", patchname))
+	   THROW_GOTO(cl_ppath)
+  )
 
   if (diff_t_len == 1) {
     UNWRAP_CLEANUP(copy_diff_file(diff_table[0], ppath))
@@ -197,6 +207,6 @@ int parse_load_args(int argc, char **argv, const char *basecacherepo) {
   TRY(loadp(argv[2], argv[3], basecacherepo),
       CATCH(ERR_SYS, HANDLE_SYS())
 
-          CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
+      CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
   ZIC_RETURN_RESULT()
 }
