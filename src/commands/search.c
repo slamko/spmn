@@ -64,11 +64,11 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     UNWRAP_PTR (matched)
 
     if (toolname_contains_searchword(toolname, matched, sargs))
-        RET_OK_CLEANUP()
+        RET_OK_DO_CLEAN_ALL()
 
     while (fgets(searchbuf, sizeof(searchbuf), descfile)) {
         if (iter_search_words(searchbuf, matched, sargs))
-            RET_OK_CLEANUP()
+            RET_OK_DO_CLEAN_ALL()
 
         memset(searchbuf, ASCNULL, sizeof(searchbuf));
     }

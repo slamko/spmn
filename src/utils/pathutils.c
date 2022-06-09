@@ -152,6 +152,7 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
 
     CLEANUP_ALL (closedir(toolsdir));
 	CLEANUP(cl_pbuf_free, free(toolsdir_path));
+	ZIC_RETURN_RESULT()
 }
 
 result

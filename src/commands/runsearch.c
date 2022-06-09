@@ -110,7 +110,7 @@ size_t calc_threadcount(int entrycnt) {
   if (entrycnt > optentrycnt) {
     return OPTTHREAD_COUNT;
   } else {
-    float actualthrcount = entrycnt / OPTWORK_AMOUNT;
+	  float actualthrcount = (double)entrycnt / (double)OPTWORK_AMOUNT;
     int nearest_thrcount = floor((double)actualthrcount);
     int workdiff = (actualthrcount * 100) - (nearest_thrcount * 100);
 
@@ -130,7 +130,7 @@ void assign_thread_bounds(lookupthread_args *threadargpool, const int tid,
     if (thcount < OPTTHREAD_COUNT) {
       thargs->endpoint = thargs->startpoint + OPTWORK_AMOUNT;
     } else {
-      double actworkamount = entrycnt / OPTTHREAD_COUNT;
+		double actworkamount = (double)entrycnt / (double)OPTTHREAD_COUNT;
       int approxstartval = (int)(floor(actworkamount / 100.0)) + 2;
       thargs->endpoint = thargs->startpoint + approxstartval;
     }
@@ -184,7 +184,6 @@ int setup_threadargs(lookupthread_args *threadargpool, const int tid,
 
 void cleanup_descfname(lookupthread_args *thargs) {
   free(thargs->descfname);
-  free(thargs->patchdir);
 }
 
 void cleanup_searchargs(searchsyms *sargs) {
@@ -194,7 +193,6 @@ void cleanup_searchargs(searchsyms *sargs) {
     free(sargs->words[i]);
   }
   free(sargs->words);
-  free(sargs);
 }
 
 void cleanup_threadargs(lookupthread_args *thargs) {
@@ -324,7 +322,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   TRY_PTR(searchargs, DO_CLEAN(cl_pdir));
 
   TRY(parse_search_symbols(searchargs, argv + startp, argc - startp),
-      HANDLE_CLEANUP("Invalid search string"));
+      HANDLE_DO_CLEAN_ALL("Invalid search string"));
 
   TRY(run_search(patchdir, searchargs), CATCH(ERR_SYS, HANDLE_SYS()));
 
