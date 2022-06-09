@@ -25,7 +25,7 @@ check_isdir(const struct dirent *dir) {
     struct stat dst;
     ZIC_RESULT_INIT()
 
-    if (!dir || !dir->d_name)
+    if (!dir)
         FAIL();
 
     if (dir->d_name[0] == '.') 
@@ -135,24 +135,23 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
     ZIC_RESULT_INIT()
 
     *buf = NULL;
-    UNWRAP (spappend(&toolsdir_path, basecacherepo, TOOLSDIR))
+    UNWRAP (spappend(&toolsdir_path, basecacherepo, TOOLSDIR));
 
-    UNWRAP_PTR_LABEL (toolsdir = opendir(toolsdir_path), cl_pbuf_free)
+	TRY_PTR (toolsdir = opendir(toolsdir_path), DO_CLEAN(cl_pbuf_free);
 
     while ((tool = readdir(toolsdir))) {
         if (IS_OK(check_isdir(tool))) {
             if (IS_OK(strncmp(toolname, tool->d_name, ENTRYLEN))) {
-                UNWRAP_CLEANUP (
-                    spappend(buf, TOOLSDIR, tool->d_name))
+                TRY (
+                    spappend(buf, TOOLSDIR, tool->d_name), DO_CLEAN_ALL()))
             }
         } 
     }
 
     ZIC_RESULT = !!*buf;
 
-    CLEANUP (
-        closedir(toolsdir);
-        cl_pbuf_free: free(toolsdir_path))
+    CLEANUP_ALL (closedir(toolsdir));
+	CLEANUP(cl_pbuf_free, free(toolsdir_path));
 }
 
 result
