@@ -95,25 +95,23 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
   snprintf(sdiff_path, tot_buf_len, "%s/%s", patch_path, diff_f);
 
   source_diff = open(sdiff_path, O_RDONLY);
-  UNWRAP_NEG_GOTO(source_diff, cl_diff_path)
+  TRY_UNWRAP_NEG(source_diff, DO_CLEAN(cl_diff_path));
   dest_diff = open(diff_f, O_CREAT | O_WRONLY, 0640);
-  UNWRAP_NEG_GOTO(dest_diff, cl_source_fd)
+  TRY_UNWRAP_NEG(dest_diff, DO_CLEAN(cl_source_fd));
 
-  UNWRAP_NEG_GOTO(stat(sdiff_path, &diff_st), cl_dest_fd)
+  TRY_UNWRAP_NEG(stat(sdiff_path, &diff_st), DO_CLEAN(cl_dest_fd));
 
-  copy_buf = calloc(diff_st.st_size, sizeof(*copy_buf));
-  UNWRAP_PTR_GOTO(copy_buf, cl_dest_fd)
+  TRY_PTR(copy_buf = calloc(diff_st.st_size, sizeof(*copy_buf)),
+          DO_CLEAN(cl_dest_fd));
 
   read_buf_c = read(source_diff, copy_buf, diff_st.st_size);
-  UNWRAP_NEG_CLEANUP(read_buf_c)
-  UNWRAP_NEG_CLEANUP(write(dest_diff, copy_buf, read_buf_c))
+  TRY_UNWRAP_NEG(read_buf_c, DO_CLEAN_ALL());
+  TRY_UNWRAP_NEG(write(dest_diff, copy_buf, read_buf_c), DO_CLEAN_ALL());
 
-  CLEANUP(free(copy_buf); cl_dest_fd
-          : close(dest_diff);
-          cl_source_fd
-          : close(source_diff);
-          cl_diff_path
-          : free(sdiff_path))
+  CLEANUP_ALL(free(copy_buf));
+  CLEANUP(cl_dest_fd, close(dest_diff));
+  CLEANUP(cl_source_fd, close(source_diff));
+  CLEANUP(cl_diff_path, free(sdiff_path));
 }
 
 result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
@@ -183,19 +181,19 @@ result loadp(const char *toolname, const char *patchname,
   UNWRAP(
       build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo))
 
-  TRY (get_diff_file_list(&diff_table, &diff_t_len, ppath),
-	   CATCH(ERR_NO_DIFF_FILE, HANDLE("No diff files found for patch '%s'", patchname))
-	   THROW_GOTO(cl_ppath)
-  )
+  TRY(get_diff_file_list(&diff_table, &diff_t_len, ppath),
+      CATCH(ERR_NO_DIFF_FILE, HANDLE("No diff files found for patch '%s'",
+                                     patchname)) THROW_GOTO(cl_ppath))
 
   if (diff_t_len == 1) {
-    UNWRAP_CLEANUP(copy_diff_file(diff_table[0], ppath))
+    TRY(copy_diff_file(diff_table[0], ppath), DO_CLEAN_ALL())
   } else {
-    UNWRAP_CLEANUP(
-        prompt_for_file_and_load(diff_table, ppath, patchname, diff_t_len))
+    TRY(prompt_for_file_and_load(diff_table, ppath, patchname, diff_t_len),
+        DO_CLEAN_ALL())
   }
 
-  CLEANUP(free_diff_f_table(diff_table, diff_t_len); cl_ppath : free(ppath))
+  CLEANUP_ALL(free_diff_f_table(diff_table, diff_t_len));
+  CLEANUP(cl_ppath, free(ppath))
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
@@ -207,6 +205,6 @@ int parse_load_args(int argc, char **argv, const char *basecacherepo) {
   TRY(loadp(argv[2], argv[3], basecacherepo),
       CATCH(ERR_SYS, HANDLE_SYS())
 
-      CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
+          CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
   ZIC_RETURN_RESULT()
 }

@@ -56,22 +56,22 @@ result print_pdescription(const char *toolname, const char *patch_name,
 
   patchn_len = strnlen(patch_name, ENTRYLEN);
   TRY(build_patch_dir(&pdir, toolname, patch_name, patchn_len, basecacherepo),
-      DO_CLEAN(cl_pdir))
+      DO_CLEAN(cl_pdir));
 
-  TRY(spappend(&md, pdir, INDEXMD), DO_CLEAN(cl_pdir))
+  TRY(spappend(&md, pdir, INDEXMD), DO_CLEAN(cl_pdir));
 
-  TRY(stat(md, &sp), DO_CLEAN(cl_pdir))
+  TRY(stat(md, &sp), DO_CLEAN(cl_pdir));
 
-  patchf = fopen(md, "r");
-  UNWRAP_PTR_LABEL(patchf, cl_pdir)
+  TRY_PTR(patchf = fopen(md, "r"), DO_CLEAN(cl_pdir));
 
   print_buf = calloc(sp.st_size, sizeof(*print_buf));
-  UNWRAP_PTR_LABEL(print_buf, cl_bufclose)
+  TRY_PTR(print_buf, DO_CLEAN(cl_bufclose));
 
-  UNWRAP_NEG_CLEANUP(fread(print_buf, sizeof(*print_buf), sp.st_size, patchf))
-  UNWRAP_NEG_CLEANUP(write(STDOUT_FILENO, print_buf, sp.st_size))
+  TRY_UNWRAP_NEG(
+      fread(print_buf, sizeof(*print_buf), sp.st_size, patchf), DO_CLEAN_ALL());
+  TRY_UNWRAP_NEG (write(STDOUT_FILENO, print_buf, sp.st_size), DO_CLEAN_ALL());
 
-  CLEANUP(cl_printbuf, free(print_buf));
+  CLEANUP_ALL(free(print_buf));
   CLEANUP(cl_bufclose, fclose(patchf));
   CLEANUP(cl_pdir, free(pdir));
 
@@ -100,9 +100,9 @@ result parse_open_args(int argc, char **argv, const char *basecacherepo) {
   openf = &print_pdescription;
 
   TRY(openf(argv[2], argv[3], basecacherepo),
-      CATCH(ERR_SYS, HANDLE_SYS())
+      CATCH(ERR_SYS, HANDLE_SYS());
 
-      CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
+	  CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
 
   ZIC_RETURN_RESULT()
 }
