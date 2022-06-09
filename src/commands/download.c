@@ -112,6 +112,7 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
   CLEANUP(cl_dest_fd, close(dest_diff));
   CLEANUP(cl_source_fd, close(source_diff));
   CLEANUP(cl_diff_path, free(sdiff_path));
+  ZIC_RETURN_RESULT()
 }
 
 result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
@@ -193,7 +194,8 @@ result loadp(const char *toolname, const char *patchname,
   }
 
   CLEANUP_ALL(free_diff_f_table(diff_table, diff_t_len));
-  CLEANUP(cl_ppath, free(ppath))
+  CLEANUP(cl_ppath, free(ppath));
+  ZIC_RETURN_RESULT()
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
@@ -203,7 +205,7 @@ int parse_load_args(int argc, char **argv, const char *basecacherepo) {
     ERROR(ERR_INVARG)
 
   TRY(loadp(argv[2], argv[3], basecacherepo),
-      CATCH(ERR_SYS, HANDLE_SYS())
+      CATCH(ERR_SYS, HANDLE_SYS());
 
           CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
   ZIC_RETURN_RESULT()

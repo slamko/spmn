@@ -75,10 +75,11 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
 
     ZIC_RESULT = check_matched_all(matched, sargs->wordcount);
     
-    CLEANUP(
+    CLEANUP_ALL(
         free(matched);
-        fseek(descfile, 0, SEEK_SET)
-    )
+        fseek(descfile, 0, SEEK_SET);
+	);
+	ZIC_RETURN_RESULT()
 }
 
 char *
@@ -109,7 +110,7 @@ read_description(FILE *descfile, const char *indexmd) {
                     break;
             } else {
                 if (descrlen > 0)
-                    UNWRAP_NEG_CLEANUP (fputs(tempbuf, descfile))
+                    TRY_UNWRAP_NEG (fputs(tempbuf, descfile), DO_CLEAN_ALL());
                 
                 memcpy(tempbuf, linebuf, sizeof(linebuf));
             }
@@ -121,11 +122,12 @@ read_description(FILE *descfile, const char *indexmd) {
     }
 
     if (description_exists) {
-        UNWRAP_NEG_CLEANUP (fflush(descfile))
+        TRY_UNWRAP_NEG (fflush(descfile), DO_CLEAN_ALL());
     }
 
-    RET_OK_CLEANUP()
-    CLEANUP (fclose(index))
+	ZIC_RESULT = OK;
+	CLEANUP_ALL (fclose(index));
+	ZIC_RETURN_RESULT()
 }
 
 result 
@@ -171,14 +173,15 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
     UNWRAP_PTR (print_buf)
 
     if (fread(print_buf, descf_size, sizeof(*print_buf), descfile) == 0) {
-        UNWRAP_CLEANUP (ferror(descfile))
+        TRY (ferror(descfile), DO_CLEAN_ALL())
     }
 
     if (fwrite(print_buf, descf_size, sizeof(*print_buf), descfile) == 0) {
-        UNWRAP_CLEANUP (ferror(descfile))
+        TRY (ferror(descfile), DO_CLEAN_ALL())
     }
 
-    CLEANUP(free(print_buf))
+    CLEANUP_ALL(free(print_buf));
+	ZIC_RETURN_RESULT()
 }
 
 result
@@ -195,9 +198,9 @@ lookup_entries_args(const char *descfname,
     ZIC_RESULT_INIT()
 
     rescache = fdopen(outfd, "w");
-    UNWRAP_PTR (rescache)
+    UNWRAP_PTR (rescache);
 
-    UNWRAP_PTR_LABEL (pd = opendir(patchdir), cl_rescache)
+	TRY_PTR (pd = opendir(patchdir), DO_CLEAN(cl_rescache));
     
     for (int entrid = 1;
         (pdir = readdir(pd)) && 
@@ -208,21 +211,21 @@ lookup_entries_args(const char *descfname,
             FILE *descfile = NULL;
             char *indexmd = NULL; 
 
-            UNWRAP_PTR_LABEL (descfile = fopen(descfname, "w+"), cl_pdir)
+            TRY_PTR (descfile = fopen(descfname, "w+"), DO_CLEAN(cl_pdir));
 
-            UNWRAP_CLEANUP (append_patchmd(&indexmd, patchdir, pdir->d_name))
+			TRY (append_patchmd(&indexmd, patchdir, pdir->d_name), DO_CLEAN_ALL());
 
             if (IS_OK(read_description(descfile, indexmd))) {
                 result search_res;
 
-                UNWRAP_CLEANUP (fseek(descfile, 0, SEEK_SET))
+                TRY (fseek(descfile, 0, SEEK_SET), DO_CLEAN_ALL())
 
                 search_res = searchdescr(descfile, pdir->d_name, sargs);
                 lock_if_multithreaded(fmutex);
                 
                 if (IS_OK(search_res)) {
-                    UNWRAP_CLEANUP (
-                        print_matched_entry(descfile, rescache, pdir->d_name)
+                    TRY (print_matched_entry(descfile, rescache, pdir->d_name),
+						 DO_CLEAN_ALL()
                     )
                 }
 
@@ -233,11 +236,11 @@ lookup_entries_args(const char *descfname,
         }
     }
 
-    RET_OK_CLEANUP()
-    CLEANUP (
-        remove(descfname);
-        cl_pdir: closedir(pd);
-        cl_rescache: fclose(rescache))
+	ZIC_RESULT = OK;
+    CLEANUP_ALL(remove(descfname));
+	CLEANUP (cl_pdir, closedir(pd));
+	CLEANUP (cl_rescache, fclose(rescache));
+	ZIC_RETURN_RESULT()
 }
 
 result 
