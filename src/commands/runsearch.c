@@ -1,5 +1,6 @@
 #include "commands/search.h"
 #include "def.h"
+#include <bits/getopt_core.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -53,10 +54,13 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     char *searchstr = sstrings[i];
     int sstrcnt = 0, sstrlen = 0;
     char *context = NULL, *parsedsstr = NULL;
-
+	
     sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
-    UNWRAP(check_entrname_valid(searchstr, sstrlen))
+    UNWRAP(check_entrname_valid(searchstr, sstrlen));
 
+	if (*searchstr == '-')
+		continue;
+		
     pubsearchstr = strndup(searchstr, sstrlen);
     parsedsstr = strndup(searchstr, sstrlen);
     sstrcnt = getwords_count(searchstr, sstrlen);
@@ -76,10 +80,17 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     if (!words)
       goto cleanup;
 
-    for (token = strtok_r(parsedsstr, delim, &context); token && wid < tstrcnt;
-         wid++) {
-      words[wid] = strndup(token, sstrlen);
-      token = strtok_r(NULL, delim, &context);
+    for (token = strtok_r(parsedsstr, delim, &context);
+		 token && wid < tstrcnt;
+		 token = strtok_r(NULL, delim, &context)) {
+		if (*token != '-') {
+			if (*token == '\\') {
+				words[wid] = strndup(token + 1, sstrlen);
+			} else {
+				words[wid] = strndup(token, sstrlen);
+			}
+			wid++;
+		}
     }
 
   cleanup:
@@ -306,7 +317,8 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   char *patchdir = NULL;
   searchsyms *searchargs = NULL;
   size_t startp = 2, toolname_argpos;
-
+  int flag;
+  
   ZIC_RESULT_INIT();
 
   if (IS_OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
@@ -321,9 +333,21 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   searchargs = calloc(1, sizeof(*searchargs));
   TRY_PTR(searchargs, DO_CLEAN(cl_pdir));
 
+
   TRY(parse_search_symbols(searchargs, argv + startp, argc - startp),
       HANDLE_DO_CLEAN_ALL("Invalid search string"));
 
+  while ((flag = getopt(argc, argv, "f")) != -1) {
+	  switch (flag) {
+	  case 'f':
+		  searchargs->s_flags.print_full_patch = true;
+		  break;
+	  case '?':
+		  ERROR_DO_CLEAN(ERR_INVARG, DO_CLEAN_ALL());
+		  break;
+	  }
+  }
+  
   TRY(run_search(patchdir, searchargs), CATCH(ERR_SYS, HANDLE_SYS()));
 
   CLEANUP_ALL(free(searchargs));

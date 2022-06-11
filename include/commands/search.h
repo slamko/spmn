@@ -1,10 +1,16 @@
 #include <pthread.h>
 #include "def.h"
+#include "stdbool.h"
+
+struct search_flags {
+	bool print_full_patch;
+};
 
 typedef struct searchargs {
     char **words; 
     char *searchstr;
     size_t wordcount;
+	struct search_flags s_flags;
 } searchsyms;
 
 struct threadargs {

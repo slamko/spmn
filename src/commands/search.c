@@ -148,26 +148,22 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
 
 result
 get_descfile_size(FILE *descfile, size_t *size_p) {
-    UNWRAP_NEG (fseek(descfile, 0, SEEK_END))
-    UNWRAP_NEG (*size_p = ftell(descfile))
-    UNWRAP_NEG (fseek(descfile, 0, SEEK_SET))
-    RET_OK()
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_END));
+    UNWRAP_NEG (*size_p = ftell(descfile));
+    UNWRAP_NEG (fseek(descfile, 0, SEEK_SET));
+	RET_OK();
 }
 
-result 
-print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
-    char *print_buf = NULL;
+result
+print_full_patch(FILE *descfile, int matchedc, const char *entryname, FILE *targetf) {
+	char *print_buf = NULL;
     size_t descf_size;
-    static int matchedc;
-    
-    ZIC_RESULT_INIT()
+	ZIC_RESULT_INIT();
 
-    matchedc++;
+	fputs( "--------------------------------------------------", targetf);
+    fprintf(targetf, "\n%d) %s:\n", matchedc, entryname);
 
-    UNWRAP_NEG (fprintf(targetf, "\n------------------------------------------------------------"))
-    UNWRAP_NEG (fprintf(targetf, "\n%d) %s:\n", matchedc, entryname))
-
-    UNWRAP (get_descfile_size(descfile, &descf_size))
+    UNWRAP (get_descfile_size(descfile, &descf_size));
 
     print_buf = calloc(descf_size + 1, sizeof(*print_buf));
     UNWRAP_PTR (print_buf)
@@ -176,12 +172,26 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname) {
         TRY (ferror(descfile), DO_CLEAN_ALL())
     }
 
-    if (fwrite(print_buf, descf_size, sizeof(*print_buf), descfile) == 0) {
+    if (fwrite(print_buf, descf_size, sizeof(*print_buf), targetf) == 0) {
         TRY (ferror(descfile), DO_CLEAN_ALL())
     }
-
+	
     CLEANUP_ALL(free(print_buf));
 	ZIC_RETURN_RESULT()
+}
+
+result 
+print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname, bool print_full_patch_description) {
+    static int matchedc;
+
+    matchedc++;
+	if (print_full_patch_description) {
+		UNWRAP(print_full_patch(descfile, matchedc, entryname, targetf));
+	} else {
+		fprintf(targetf, "\n%d) %s\n", matchedc, entryname);
+	}
+	
+	RET_OK()
 }
 
 result
@@ -224,7 +234,7 @@ lookup_entries_args(const char *descfname,
                 lock_if_multithreaded(fmutex);
                 
                 if (IS_OK(search_res)) {
-                    TRY (print_matched_entry(descfile, rescache, pdir->d_name),
+                    TRY (print_matched_entry(descfile, rescache, pdir->d_name, sargs->s_flags.print_full_patch),
 						 DO_CLEAN_ALL()
                     )
                 }
