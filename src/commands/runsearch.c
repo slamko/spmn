@@ -48,7 +48,6 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
   ZIC_RESULT_INIT()
 
   sargs->words = NULL;
-  sargs->searchstr = NULL;
   sargs->wordcount = 0;
 
   for (int i = 0; i < scount; i++) {
@@ -95,12 +94,12 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     }
 
 	CLEANUP_ALL(
+		free(pubsearchstr);
 		context = NULL;
 		free(parsedsstr));
   }
 
   sargs->words = words;
-  sargs->searchstr = pubsearchstr;
   sargs->wordcount = tstrcnt;
   ZIC_RETURN_RESULT();
 }
@@ -198,8 +197,6 @@ void cleanup_descfname(lookupthread_args *thargs) {
 }
 
 void cleanup_searchargs(searchsyms *sargs) {
-  free(sargs->searchstr);
-
   for (size_t i = 0; i < sargs->wordcount; i++) {
     free(sargs->words[i]);
   }
@@ -338,7 +335,6 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   searchargs = calloc(1, sizeof(*searchargs));
   TRY_PTR(searchargs, DO_CLEAN(cl_pdir));
 
-
   TRY(parse_search_symbols(searchargs, argv + startp, argc - startp),
       HANDLE_DO_CLEAN_ALL("Invalid search string"));
 
@@ -353,7 +349,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
 	  }
   }
   
-  TRY(run_search(patchdir, searchargs), CATCH(ERR_SYS, HANDLE_SYS()));
+  TRY(run_search(patchdir, searchargs), CATCH(ERR_SYS, HANDLE_SYS_DO_CLEAN_ALL()));
 
   CLEANUP_ALL(free(searchargs));
   CLEANUP(cl_pdir, free(patchdir))

@@ -8,7 +8,6 @@ struct search_flags {
 
 typedef struct searchargs {
     char **words; 
-    char *searchstr;
     size_t wordcount;
 	struct search_flags s_flags;
 } searchsyms;

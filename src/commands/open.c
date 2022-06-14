@@ -60,9 +60,9 @@ result print_pdescription(const char *toolname, const char *patch_name,
 
   TRY(spappend(&md, pdir, INDEXMD), DO_CLEAN(cl_pdir));
 
-  TRY(stat(md, &sp), DO_CLEAN(cl_pdir));
+  TRY(stat(md, &sp), DO_CLEAN(cl_md));
 
-  TRY_PTR(patchf = fopen(md, "r"), DO_CLEAN(cl_pdir));
+  TRY_PTR(patchf = fopen(md, "r"), DO_CLEAN(cl_md));
 
   print_buf = calloc(sp.st_size, sizeof(*print_buf));
   TRY_PTR(print_buf, DO_CLEAN(cl_bufclose));
@@ -73,6 +73,7 @@ result print_pdescription(const char *toolname, const char *patch_name,
 
   CLEANUP_ALL(free(print_buf));
   CLEANUP(cl_bufclose, fclose(patchf));
+  CLEANUP(cl_md, free(md));
   CLEANUP(cl_pdir, free(pdir));
 
   ZIC_RETURN_RESULT()

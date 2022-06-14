@@ -63,8 +63,8 @@ result build_patch_path(char **path, const char *toolname,
   ZIC_RESULT_INIT()
 
   toolname_len = strnlen(toolname, ENTRYLEN);
-  *path = calloc(toolname_len + patchn_len + 1, sizeof(**path));
-  UNWRAP_PTR(*path)
+  /* *path = calloc(toolname_len + patchn_len + 1, sizeof(**path)); */
+  /* UNWRAP_PTR(*path) */
 
   TRY(check_entrname_valid(patch_name, patchn_len),
       HANDLE("Invalid patch name: '%s'", patch_name))
@@ -110,8 +110,8 @@ result build_patch_dir(char **pdir, const char *toolname,
   char *ppath = NULL;
   ZIC_RESULT_INIT();
 
-  RES_UNWRAP(build_patch_path(&ppath, toolname, patch_name, patchn_len,
-                              basecacherepo));
+  TRY(build_patch_path(&ppath, toolname, patch_name, patchn_len,
+					   basecacherepo), DO_CLEAN_ALL());
   TRY(append_patch_dir(pdir, ppath, patch_name, basecacherepo), DO_CLEAN_ALL());
   CLEANUP_ALL(free(ppath));
   ZIC_RETURN_RESULT()

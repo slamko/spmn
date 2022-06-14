@@ -74,7 +74,7 @@ result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
     for (size_t diff_counter = 0;
          IS_OK(diff_f_iter(pdir, &pdirent, &diff_f_name)); diff_counter++) {
 
-        (*diff_table)[diff_counter] = strdup(pdirent->d_name);
+        (*diff_table)[diff_counter] = diff_f_name;
     }
 
     *diff_table_len = diff_total_cnt;
@@ -166,6 +166,7 @@ static void free_diff_f_table(char **diff_table, size_t diff_t_len) {
     for (size_t diff_f_i = 0; diff_f_i < diff_t_len; diff_f_i++) {
         free(diff_table[diff_f_i]);
     }
+	free(diff_table);
 }
 
 static result prompt_for_file_and_load(char **diff_table, char *ppath,
@@ -187,13 +188,13 @@ result loadp(const char *toolname, const char *patchname,
     ZIC_RESULT_INIT()
 
     patchn_len = strnlen(patchname, ENTRYLEN);
-    UNWRAP(
-        build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo))
+    TRY(
+        build_patch_dir(&ppath, toolname, patchname, patchn_len, basecacherepo), DO_CLEAN(cl_ppath))
 
     TRY(get_diff_file_list(&diff_table, &diff_t_len, ppath),
         CATCH(ERR_NO_DIFF_FILE,
               HANDLE("No diff files found for patch '%s'", patchname));
-        DO_CLEAN(cl_ppath));
+        DO_CLEAN_ALL());
 
     if (diff_t_len == 1) {
         TRY(copy_diff_file(diff_table[0], ppath), DO_CLEAN_ALL())
