@@ -9,6 +9,7 @@
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +79,7 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     }
 
     if (!words)
-      goto cleanup;
+		DO_CLEAN_ALL();
 
     for (token = strtok_r(parsedsstr, delim, &context);
 		 token && wid < tstrcnt;
@@ -93,9 +94,9 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
 		}
     }
 
-  cleanup:
-    context = NULL;
-    free(parsedsstr);
+	CLEANUP_ALL(
+		context = NULL;
+		free(parsedsstr));
   }
 
   sargs->words = words;
@@ -105,7 +106,6 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
 }
 
 int worth_multithread(int entrycount) {
-  printf("\nEntrycount: %d\n", entrycount);
   (void)entrycount;
 
 #ifdef USE_MULTITHREADED
@@ -326,6 +326,11 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   }
 
   toolname_argpos = startp - TOOLNAME_ARGPOS;
+
+  if (toolname_argpos >= (size_t)argc) {
+	  ERROR(ERR_INVARG)
+  }
+  
   TRY(append_toolpath(&patchdir, basecacherepo, argv[toolname_argpos]),
       HANDLE("Suckless tool with name: '%s' not found",
              argv[toolname_argpos]););

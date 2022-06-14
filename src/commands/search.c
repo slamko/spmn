@@ -188,7 +188,7 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname, bool p
 	if (print_full_patch_description) {
 		UNWRAP(print_full_patch(descfile, matchedc, entryname, targetf));
 	} else {
-		fprintf(targetf, "\n%d) %s\n", matchedc, entryname);
+		fprintf(targetf, "%d) %s\n", matchedc, entryname);
 	}
 	
 	RET_OK()

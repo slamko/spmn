@@ -5,6 +5,12 @@
 #include "def.h"
 #include "utils/logutils.h"
 
+static const char *usage_msg = "Usage: \n"
+	"\tsise [search] <tool> <keywords>\n"
+	"\tsise <sync>\n"
+	"\tsise <open> <tool> <patch> [-b]\n"
+	"\tsise <load> <tool> <patch> [-a]\n";
+
 void 
 error(const char* err_format, ...) {
     va_list args;
@@ -25,7 +31,7 @@ void bug(const char *bug_msg, ...) {
 
 void
 print_usage(void) {
-    printf("usage: sise [command] <tool> <keywords>\n");
+    puts(usage_msg);
 }
 
 void 

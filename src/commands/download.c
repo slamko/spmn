@@ -14,7 +14,8 @@
 #include <unistd.h>
 
 DEFINE_ERROR(ERR_NO_DIFF_FILE, 15)
-
+DEFINE_ERROR(ERR_LOAD_CANCELED, 16)
+	
 #define DIFF_FILE_EXT "diff"
 #define ENTER_NUMBER_PROMPT "Enter a number"
 
@@ -130,6 +131,10 @@ result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
                 prompt_msg = "Please enter a number from the listed range";
                 continue;
             }
+			if (tmp_input == 0) {
+				input_val = NULL;
+				ERROR(ERR_LOAD_CANCELED)
+			}
             break;
         }
         prompt_msg = ENTER_NUMBER_PROMPT;
@@ -149,6 +154,8 @@ result prompt_diff_file(char **diff_table, char **chosen_diff,
     for (size_t diff_i = 0; diff_i < diff_f_cnt; diff_i++) {
         printf("(%zu) %s\n", diff_i + 1, diff_table[diff_i]);
     }
+
+	puts("\n(0) Cancel");
 
     UNWRAP(read_prompt_diff_file(&usr_input, diff_f_cnt))
     *chosen_diff = diff_table[usr_input];
@@ -192,7 +199,10 @@ result loadp(const char *toolname, const char *patchname,
         TRY(copy_diff_file(diff_table[0], ppath), DO_CLEAN_ALL())
     } else {
         TRY(prompt_for_file_and_load(diff_table, ppath, patchname, diff_t_len),
-            DO_CLEAN_ALL())
+			CATCH(ERR_LOAD_CANCELED,
+				  HANDLE_DO_CLEAN_ALL("Canceled")
+				)
+			DO_CLEAN_ALL())
     }
 
     CLEANUP_ALL(free_diff_f_table(diff_table, diff_t_len));

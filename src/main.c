@@ -82,25 +82,31 @@ int main(int argc, char **argv) {
 
   if (parse_command(argc, argv, &cmd)) {
     print_usage();
-    return EXIT_FAILURE;
+    FAIL();
   }
 
   if (get_repocache(&basecacherepo)) {
-    return EXIT_FAILURE;
+	  FAIL();
   }
 
   if (cmd != SYNC) {
     if (!check_baserepo_exists(basecacherepo)) {
       error_nolocalrepo();
-      return EXIT_FAILURE;
+      FAIL_DO_CLEAN_ALL();
     }
 
     if (try_sync_caches(basecacherepo)) {
       error("Failed to autosync caches. Continuing without syncing...");
-    }
+	  FAIL_DO_CLEAN_ALL();
+	}
   }
 
-  TRY(commands[(int)cmd](argc, argv, basecacherepo), )
+  TRY(commands[(int)cmd](argc, argv, basecacherepo),
+	  CATCH(ERR_INVARG,
+			print_usage();
+			FAIL_DO_CLEAN_ALL();
+		  );
+  );
 
-  free(basecacherepo);
+  CLEANUP_ALL(free(basecacherepo))
 }
