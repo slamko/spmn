@@ -49,7 +49,7 @@ result print_pdescription(const char *toolname, const char *patch_name,
                           const char *basecacherepo) {
   char *pdir = NULL, *md = NULL;
   char *print_buf = NULL;
-  FILE *patchf = NULL;
+  FILE *patchf = NULL, *targetp = NULL;
   struct stat sp = {0};
   size_t patchn_len;
   ZIC_RESULT_INIT()
@@ -67,11 +67,14 @@ result print_pdescription(const char *toolname, const char *patch_name,
   print_buf = calloc(sp.st_size, sizeof(*print_buf));
   TRY_PTR(print_buf, DO_CLEAN(cl_bufclose));
 
+  TRY_PTR(targetp = popen("less", "w"), DO_CLEAN(cl_printbuf))
+  
   TRY_UNWRAP_NEG(
       fread(print_buf, sizeof(*print_buf), sp.st_size, patchf), DO_CLEAN_ALL());
-  TRY_UNWRAP_NEG (write(STDOUT_FILENO, print_buf, sp.st_size), DO_CLEAN_ALL());
+  TRY_UNWRAP_NEG (fwrite(print_buf, sizeof(*print_buf), sp.st_size, targetp), DO_CLEAN_ALL());
 
-  CLEANUP_ALL(free(print_buf));
+  CLEANUP_ALL(pclose(targetp));
+  CLEANUP(cl_printbuf, free(print_buf));
   CLEANUP(cl_bufclose, fclose(patchf));
   CLEANUP(cl_md, free(md));
   CLEANUP(cl_pdir, free(pdir));

@@ -76,7 +76,7 @@ result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
 
         (*diff_table)[diff_counter] = diff_f_name;
     }
-
+	
     *diff_table_len = diff_total_cnt;
     UNWRAP(closedir(pdir))
     RET_OK()
