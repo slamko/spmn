@@ -24,15 +24,17 @@
 #include "utils/pathutils.h"
 
 int getwords_count(char *searchstr, int searchlen) {
-  int symbolscount = !!searchlen;
+  int symbolscount = 0;
   bool prevcharisspace = true;
 
   for (int i = 0; i < searchlen; i++) {
     if (isspace(searchstr[i])) {
-      if (!prevcharisspace)
-        symbolscount++;
+		prevcharisspace = true;
     } else {
-      prevcharisspace = false;
+		if (prevcharisspace)
+			symbolscount++;
+		
+		prevcharisspace = false;
     }
   }
   return symbolscount;
@@ -40,7 +42,7 @@ int getwords_count(char *searchstr, int searchlen) {
 
 int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
   char **words = NULL;
-  char *pubsearchstr = NULL, *token = NULL;
+  char *token = NULL;
   size_t tstrcnt = 0;
   size_t lastalloc = 0, wid = 0;
   char delim[] = " ";
@@ -55,13 +57,12 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     int sstrcnt = 0, sstrlen = 0;
     char *context = NULL, *parsedsstr = NULL;
 	
-    sstrlen = strnlen(searchstr, MAXSEARCH_LEN) + 2;
+    sstrlen = strnlen(searchstr, MAXSEARCH_LEN);
     UNWRAP(check_entrname_valid(searchstr, sstrlen));
 
 	if (*searchstr == '-')
 		continue;
 		
-    pubsearchstr = strndup(searchstr, sstrlen);
     parsedsstr = strndup(searchstr, sstrlen);
     sstrcnt = getwords_count(searchstr, sstrlen);
     tstrcnt += sstrcnt;
@@ -94,7 +95,6 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     }
 
 	CLEANUP_ALL(
-		free(pubsearchstr);
 		context = NULL;
 		free(parsedsstr));
   }

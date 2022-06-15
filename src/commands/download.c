@@ -127,8 +127,8 @@ result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
         UNWRAP_PTR(fgets(read_buf, ENTRYLEN - 1, stdin))
 
         if (sscanf(read_buf, "%zu", &tmp_input) != EOF) {
-            if (tmp_input >= diff_t_len) {
-                prompt_msg = "Please enter a number from the listed range";
+            if (tmp_input > diff_t_len) {
+                prompt_msg = "Please, enter a number from the listed range";
                 continue;
             }
 			if (tmp_input == 0) {
@@ -158,7 +158,7 @@ result prompt_diff_file(char **diff_table, char **chosen_diff,
 	puts("\n(0) Cancel");
 
     UNWRAP(read_prompt_diff_file(&usr_input, diff_f_cnt))
-    *chosen_diff = diff_table[usr_input];
+    *chosen_diff = diff_table[usr_input - 1];
     RET_OK()
 }
 

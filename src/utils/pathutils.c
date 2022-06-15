@@ -188,11 +188,13 @@ get_tool_path(char **patchdir, const char *basecacherepo, const char *toolname) 
 result 
 append_toolpath(char **buf, const char *basecacherepo, const char *toolname) {
     char *patchdir = NULL;
-
-    UNWRAP (get_tool_path(&patchdir, basecacherepo, toolname))
-    UNWRAP (append_tooldir(buf, basecacherepo, patchdir)) 
+	ZIC_RESULT_INIT();
+	
+    UNWRAP_DO_CLEAN_ALL (get_tool_path(&patchdir, basecacherepo, toolname));
+	UNWRAP_DO_CLEAN_ALL (append_tooldir(buf, basecacherepo, patchdir));
     
-    RET_OK();
+	CLEANUP_ALL(free(patchdir));
+	ZIC_RETURN_RESULT()
 }
 
 result
