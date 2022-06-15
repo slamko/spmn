@@ -6,10 +6,10 @@
 #include "utils/logutils.h"
 
 static const char *usage_msg = "Usage: \n"
-	"\tsise [search] <tool> <keywords>\n"
-	"\tsise <sync>\n"
-	"\tsise <open> <tool> <patch> [-b]\n"
-	"\tsise <load> <tool> <patch> [-a]\n";
+	"\tspm [search] <tool> <keywords>\n"
+	"\tspm <sync>\n"
+	"\tspm <open> <tool> <patch> [-b]\n"
+	"\tspm <load> <tool> <patch> [-a]\n";
 
 void 
 error(const char* err_format, ...) {
@@ -36,5 +36,5 @@ print_usage(void) {
 
 void 
 error_nolocalrepo(void) {
-    error("Unable to find base suckless repo. Try running 'sise sync'");
+    error("Unable to find base suckless repo. Try running 'spm sync'");
 }

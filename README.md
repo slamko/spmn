@@ -1,1 +1,1 @@
-# [Suckless.org](https://suckless.org/) Interactive SEarch
+# Suckless Patch Manager
