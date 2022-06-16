@@ -66,6 +66,7 @@ int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
     parsedsstr = strndup(searchstr, sstrlen);
     sstrcnt = getwords_count(searchstr, sstrlen);
     tstrcnt += sstrcnt;
+	printf("\n%zu", tstrcnt);
 
     if (!words) {
       lastalloc = sstrcnt * scount;
