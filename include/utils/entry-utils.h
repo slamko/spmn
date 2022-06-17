@@ -17,3 +17,5 @@ result build_patch_dir(char **pdir, const char *toolname,
 
 result build_patch_url(char **url, const char *toolname, 
                         const char *patch_name, const char *basecacherepo);
+
+result parse_tool_and_patch_name(int argc, char **argv, char **toolname, char **patchname, size_t init_search_pos);
