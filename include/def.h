@@ -40,14 +40,8 @@
 #define KEYWORD_ARGPOS 2
 #define PRINTABLE_DESCRIPTION_MAXLEN 5
 
-#define SEARCH_CMD "search"
-#define SYNC_CMD "sync"
-#define DOWNLOAD_CMD "load"
-#define OPEN_CMD "open"
-#define APPLY_CMD "apply"
 #define CMD_LEN 8
 #define CMD_ARGPOS 1
-
 
 #define MINI_ZIC
 #include <zic/zic.h>

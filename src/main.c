@@ -10,6 +10,7 @@
 #include <pwd.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,8 +20,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "commands/download.h"
 #include "commands/apply.h"
+#include "commands/download.h"
 #include "commands/open.h"
 #include "commands/runsearch.h"
 #include "commands/sync.h"
@@ -29,90 +30,88 @@
 
 typedef int (*commandp)(int, char **, const char *);
 
-static const commandp commands[] = {
-    &parse_sync_args, &parse_search_args, &parse_open_args, &parse_load_args,
-    &parse_apply_args
-        };
+static const commandp commands[] = {&parse_sync_args, &parse_search_args,
+                                    &parse_open_args, &parse_load_args,
+                                    &parse_apply_args};
+
+static const char *const command_names[] = {"sync", "search", "open", "load",
+                                            "apply"};
 
 enum command { SYNC = 0, SEARCH = 1, OPEN = 2, DOWNLOAD = 3, APPLY = 4 };
 
 int local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
-  return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D ||
-         (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) ||
-         (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D);
+    return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D ||
+           (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) ||
+           (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D);
 }
 
 result try_sync_caches(const char *basecacherepo) {
-  struct stat cache_sb = {0};
-  time_t lastmtime, curtime;
-  struct tm *lmttm = NULL, *cttm = NULL;
+    struct stat cache_sb = {0};
+    time_t lastmtime, curtime;
+    struct tm *lmttm = NULL, *cttm = NULL;
 
-  UNWRAP(stat(basecacherepo, &cache_sb))
+    UNWRAP(stat(basecacherepo, &cache_sb))
 
-  lastmtime = cache_sb.st_mtim.tv_sec;
-  time(&curtime);
-  cttm = gmtime(&curtime);
-  lmttm = gmtime(&lastmtime);
+    lastmtime = cache_sb.st_mtim.tv_sec;
+    time(&curtime);
+    cttm = gmtime(&curtime);
+    lmttm = gmtime(&lastmtime);
 
-  if (local_repo_is_obsolete(cttm, lmttm)) {
-    return run_sync();
-  }
-  RET_OK();
+    if (local_repo_is_obsolete(cttm, lmttm)) {
+        return run_sync();
+    }
+    RET_OK();
 }
 
 result parse_command(const int argc, char **argv, enum command *commandarg) {
-  if (argc <= 1)
-    ERROR(ERR_INVARG);
+	int set_cmd = 0;
+	
+    if (argc <= 1)
+        ERROR(ERR_INVARG);
 
-  if (IS_OK(strncmp(argv[CMD_ARGPOS], SYNC_CMD, sizeof(SYNC_CMD) - 1))) {
-    *commandarg = SYNC;
-  } else if (IS_OK(strncmp(argv[CMD_ARGPOS], DOWNLOAD_CMD,
-                           sizeof(DOWNLOAD_CMD) - 1))) {
-    *commandarg = DOWNLOAD;
-  } else if (IS_OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, sizeof(OPEN_CMD) - 1))) {
-    *commandarg = OPEN;
-  } else if (IS_OK(strncmp(argv[CMD_ARGPOS], APPLY_CMD, sizeof(APPLY_CMD) - 1))) {
-    *commandarg = APPLY;
-  } else {
-    *commandarg = SEARCH;
-  }
+    for (size_t cmdi = 0; cmdi < sizeof(command_names); cmdi++) {
+        if (IS_OK(strcmp(command_names[cmdi], argv[CMD_ARGPOS]))) {
+            *commandarg = (enum command)cmdi;
+			set_cmd = 1;
+			break;
+        }
+    }
 
-  RET_OK();
+	if (!set_cmd)
+		*commandarg = SEARCH;
+
+    RET_OK();
 }
 
 int main(int argc, char **argv) {
-  char *basecacherepo;
-  enum command cmd;
-  ZIC_RESULT_INIT()
+    char *basecacherepo;
+    enum command cmd;
+    ZIC_RESULT_INIT()
 
-  if (parse_command(argc, argv, &cmd)) {
-    print_usage();
-    FAIL();
-  }
-
-  if (get_repocache(&basecacherepo)) {
-	  FAIL();
-  }
-
-  if (cmd != SYNC) {
-    if (!check_baserepo_exists(basecacherepo)) {
-      error_nolocalrepo();
-      FAIL_DO_CLEAN_ALL();
+    if (parse_command(argc, argv, &cmd)) {
+        print_usage();
+        FAIL();
     }
 
-    if (try_sync_caches(basecacherepo)) {
-      error("Failed to autosync caches. Continuing without syncing...");
-	  FAIL_DO_CLEAN_ALL();
-	}
-  }
+    if (get_repocache(&basecacherepo)) {
+        FAIL();
+    }
 
-  TRY(commands[(int)cmd](argc, argv, basecacherepo),
-	  CATCH(ERR_INVARG,
-			print_usage();
-			FAIL_DO_CLEAN_ALL();
-		  );
-  );
+    if (cmd != SYNC) {
+        if (!check_baserepo_exists(basecacherepo)) {
+            error_nolocalrepo();
+            FAIL_DO_CLEAN_ALL();
+        }
 
-  CLEANUP_ALL(free(basecacherepo));
-  ZIC_RETURN_RESULT();
+        if (try_sync_caches(basecacherepo)) {
+            error("Failed to autosync caches. Continuing without syncing...");
+            FAIL_DO_CLEAN_ALL();
+        }
+    }
+
+    TRY(commands[(int)cmd](argc, argv, basecacherepo),
+        CATCH(ERR_INVARG, print_usage(); FAIL_DO_CLEAN_ALL();););
+
+    CLEANUP_ALL(free(basecacherepo));
+    ZIC_RETURN_RESULT();
 }
