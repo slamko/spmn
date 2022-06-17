@@ -26,7 +26,7 @@ result do_apply(const char *diff_file) {
 	RET_OK();
 }
 
-result applyp(const char *toolname, const char *patchname,
+static result applyp(const char *toolname, const char *patchname,
              const char *basecacherepo) {
 	return loadp(toolname, patchname, basecacherepo, (struct load_args){.apply = true});
 }

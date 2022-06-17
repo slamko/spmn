@@ -46,7 +46,7 @@ result openp(const char *toolname, const char *patch_name,
   ZIC_RETURN_RESULT()
 }
 
-result print_pdescription(const char *toolname, const char *patch_name,
+static result print_pdescription(const char *toolname, const char *patch_name,
                           const char *basecacherepo) {
   char *pdir = NULL, *md = NULL;
   char *print_buf = NULL;

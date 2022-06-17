@@ -23,7 +23,7 @@ DEFINE_ERROR(ERR_LOAD_CANCELED, 16)
 #define DIFF_FILE_EXT "diff"
 #define ENTER_NUMBER_PROMPT "Enter a number"
 
-result diff_f_iter(DIR *ddir, struct dirent **ddirent, char **diff_f) {
+static result diff_f_iter(DIR *ddir, struct dirent **ddirent, char **diff_f) {
     while ((*ddirent = readdir(ddir))) {
         char *diff_ext;
         diff_ext = strrchr((*ddirent)->d_name, '.');
@@ -39,7 +39,7 @@ result diff_f_iter(DIR *ddir, struct dirent **ddirent, char **diff_f) {
     FAIL()
 }
 
-result get_diff_files_cnt(const char *patch_p, size_t *fcnt) {
+static result get_diff_files_cnt(const char *patch_p, size_t *fcnt) {
     DIR *pdir = NULL;
     struct dirent *pdirent = NULL;
     size_t diff_cnt = 0;
@@ -56,7 +56,7 @@ result get_diff_files_cnt(const char *patch_p, size_t *fcnt) {
     RET_OK()
 }
 
-result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
+static result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
                           const char *patch_p) {
     DIR *pdir = NULL;
     struct dirent *pdirent = NULL;
@@ -86,7 +86,7 @@ result get_diff_file_list(char ***diff_table, size_t *diff_table_len,
     RET_OK()
 }
 
-result copy_diff_file(const char *diff_f, const char *patch_path) {
+static result copy_diff_file(const char *diff_f, const char *patch_path) {
     char *sdiff_path = NULL, *copy_buf = NULL;
     int dest_diff, source_diff, read_buf_c;
     struct stat diff_st = {0};
@@ -121,7 +121,7 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
     ZIC_RETURN_RESULT()
 }
 
-result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
+static result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
     char read_buf[ENTRYLEN] = {0};
     size_t tmp_input = 0;
 
@@ -148,7 +148,7 @@ result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
     RET_OK()
 }
 
-result prompt_diff_file(char **diff_table, char **chosen_diff,
+static result prompt_diff_file(char **diff_table, char **chosen_diff,
                         const char *patch_name, size_t diff_f_cnt) {
     size_t usr_input = 0;
 

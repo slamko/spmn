@@ -39,13 +39,13 @@ static const char *const command_names[] = {"sync", "search", "open", "load",
 
 enum command { SYNC = 0, SEARCH = 1, OPEN = 2, DOWNLOAD = 3, APPLY = 4 };
 
-int local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
+static int local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
     return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D ||
            (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) ||
            (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D);
 }
 
-result try_sync_caches(const char *basecacherepo) {
+static result try_sync_caches(const char *basecacherepo) {
     struct stat cache_sb = {0};
     time_t lastmtime, curtime;
     struct tm *lmttm = NULL, *cttm = NULL;
@@ -63,7 +63,7 @@ result try_sync_caches(const char *basecacherepo) {
     RET_OK();
 }
 
-result parse_command(const int argc, char **argv, enum command *commandarg) {
+static result parse_command(const int argc, char **argv, enum command *commandarg) {
 	int set_cmd = 0;
 	
     if (argc <= 1)

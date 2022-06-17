@@ -19,12 +19,12 @@
 #include "utils/pathutils.h"
 #include "utils/logutils.h"
 
-int 
+static int 
 is_line_separator(const char *line) {
     return (line[0] & line[1] & line[2]) == '-';
 }
 
-result 
+static result 
 check_matched_all(const bool *is_matched, const size_t wordcount) {
     for (size_t i = 0; i < wordcount; i++) {
         if (!is_matched[i])
@@ -33,7 +33,7 @@ check_matched_all(const bool *is_matched, const size_t wordcount) {
     RET_OK()
 }
 
-int 
+static int 
 iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs) {
     for (size_t i = 0; i < sargs->wordcount; i++) {
         if (!matched[i]) {
@@ -48,12 +48,12 @@ iter_search_words(const char *searchbuf, bool *matched, const searchsyms *sargs)
     return 0;
 }
 
-int
+static int
 toolname_contains_searchword(const char *toolname, bool *matched, const searchsyms *sargs) {
     return iter_search_words(toolname, matched, sargs);
 }
 
-result
+static result
 searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
     char searchbuf[LINEBUF] = {0};
     bool *matched = NULL;
@@ -82,7 +82,7 @@ searchdescr(FILE *descfile, const char *toolname, const searchsyms *sargs) {
 	ZIC_RETURN_RESULT()
 }
 
-char *
+static char *
 tryread_desc(FILE *index, char *buf, const bool descrexists) {
     if (descrexists) {
         return fgets(buf, LINEBUF, index);
@@ -90,7 +90,7 @@ tryread_desc(FILE *index, char *buf, const bool descrexists) {
     return fgets(buf, DESCRIPTION_SECTION_LENGTH, index);
 }
 
-int
+static int
 read_description(FILE *descfile, const char *indexmd) {
     FILE *index = NULL;
     char tempbuf[LINEBUF] = {0};
@@ -130,7 +130,7 @@ read_description(FILE *descfile, const char *indexmd) {
 	ZIC_RETURN_RESULT()
 }
 
-result 
+static result 
 lock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         return pthread_mutex_lock(mutex);
@@ -138,7 +138,7 @@ lock_if_multithreaded(pthread_mutex_t *mutex) {
     RET_OK()
 }
 
-result 
+static result 
 unlock_if_multithreaded(pthread_mutex_t *mutex) {
     if (mutex)
         return pthread_mutex_unlock(mutex);
@@ -146,7 +146,7 @@ unlock_if_multithreaded(pthread_mutex_t *mutex) {
     RET_OK()
 }
 
-result
+static result
 get_descfile_size(FILE *descfile, size_t *size_p) {
     UNWRAP_NEG (fseek(descfile, 0, SEEK_END));
     UNWRAP_NEG (*size_p = ftell(descfile));
@@ -154,7 +154,7 @@ get_descfile_size(FILE *descfile, size_t *size_p) {
 	RET_OK();
 }
 
-result
+static result
 print_full_patch(FILE *descfile, int matchedc, const char *entryname, FILE *targetf) {
 	char *print_buf = NULL;
     size_t descf_size;
@@ -180,7 +180,7 @@ print_full_patch(FILE *descfile, int matchedc, const char *entryname, FILE *targ
 	ZIC_RETURN_RESULT()
 }
 
-result 
+static result 
 print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname, bool print_full_patch_description) {
     static int matchedc;
 
@@ -194,7 +194,7 @@ print_matched_entry(FILE *descfile, FILE *targetf, const char *entryname, bool p
 	RET_OK()
 }
 
-result
+static result
 lookup_entries_args(const char *descfname, 
                     const int startpoint, const int endpoint, 
                     const int outfd, 

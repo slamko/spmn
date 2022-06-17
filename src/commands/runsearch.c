@@ -23,7 +23,7 @@
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
 
-int getwords_count(char *searchstr, int searchlen) {
+static int getwords_count(char *searchstr, int searchlen) {
   int symbolscount = 0;
   bool prevcharisspace = true;
 
@@ -40,7 +40,7 @@ int getwords_count(char *searchstr, int searchlen) {
   return symbolscount;
 }
 
-int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
+static int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) {
   char **words = NULL;
   char *token = NULL;
   size_t tstrcnt = 0;
@@ -115,8 +115,8 @@ int worth_multithread(int entrycount) {
   return OK;
 #endif
 }
-
-size_t calc_threadcount(int entrycnt) {
+/*
+static size_t calc_threadcount(int entrycnt) {
   int optentrycnt = OPTWORK_AMOUNT * OPTTHREAD_COUNT;
   if (entrycnt > optentrycnt) {
     return OPTTHREAD_COUNT;
@@ -131,8 +131,8 @@ size_t calc_threadcount(int entrycnt) {
     return nearest_thrcount + 1;
   }
 }
-
-void assign_thread_bounds(lookupthread_args *threadargpool, const int tid,
+*/
+static void assign_thread_bounds(lookupthread_args *threadargpool, const int tid,
                           const int thcount, const int entrycnt) {
   lookupthread_args *thargs = threadargpool + tid;
 
@@ -158,7 +158,7 @@ void assign_thread_bounds(lookupthread_args *threadargpool, const int tid,
   }
 }
 
-int setup_threadargs(lookupthread_args *threadargpool, const int tid,
+static int setup_threadargs(lookupthread_args *threadargpool, const int tid,
                      const int thcount, const int entrycnt, const int thoutfd,
                      searchsyms *searchargs, char *patchdir,
                      pthread_mutex_t *fmutex) {
@@ -193,22 +193,17 @@ int setup_threadargs(lookupthread_args *threadargpool, const int tid,
   RET_OK()
 }
 
-void cleanup_descfname(lookupthread_args *thargs) {
+static void cleanup_descfname(lookupthread_args *thargs) {
   free(thargs->descfname);
 }
 
-void cleanup_searchargs(searchsyms *sargs) {
+static void cleanup_searchargs(searchsyms *sargs) {
   for (size_t i = 0; i < sargs->wordcount; i++) {
     free(sargs->words[i]);
   }
   free(sargs->words);
 }
 
-void cleanup_threadargs(lookupthread_args *thargs) {
-  cleanup_descfname(thargs);
-  cleanup_searchargs(thargs->searchargs);
-  free(thargs);
-}
 /*
 int
 run_multithreaded(char *patchdir, searchsyms *searchargs, const int entrycnt) {
@@ -315,11 +310,11 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   char *patchdir = NULL;
   searchsyms *searchargs = NULL;
   size_t startp = 2, toolname_argpos;
-  int flag;
+  int option;
   
   ZIC_RESULT_INIT();
 
-  if (IS_OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
+  if (IS_OK(strncmp(argv[CMD_ARGPOS], "search", CMD_LEN))) {
     startp++;
   }
 
@@ -339,8 +334,8 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
   TRY(parse_search_symbols(searchargs, argv + startp, argc - startp),
       HANDLE_DO_CLEAN_ALL("Invalid search string"));
 
-  while ((flag = getopt(argc, argv, "f")) != -1) {
-	  switch (flag) {
+  while ((option = getopt(argc, argv, "f")) != -1) {
+	  switch (option) {
 	  case 'f':
 		  searchargs->s_flags.print_full_patch = true;
 		  break;
