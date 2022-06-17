@@ -12,6 +12,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include "commands/download.h"
+#include "commands/apply.h"
 
 DEFINE_ERROR(ERR_NO_DIFF_FILE, 15)
 DEFINE_ERROR(ERR_LOAD_CANCELED, 16)
@@ -169,21 +171,11 @@ static void free_diff_f_table(char **diff_table, size_t diff_t_len) {
 	free(diff_table);
 }
 
-static result prompt_for_file_and_load(char **diff_table, char *ppath,
-                                       const char *patch_name,
-                                       size_t diff_t_len) {
-    char *chosen_diff_f = NULL;
-
-    UNWRAP(prompt_diff_file(diff_table, &chosen_diff_f, patch_name, diff_t_len))
-    UNWRAP(copy_diff_file(chosen_diff_f, ppath))
-
-    RET_OK()
-}
-
 result loadp(const char *toolname, const char *patchname,
-             const char *basecacherepo) {
+             const char *basecacherepo, struct load_args flags) {
     char *ppath = NULL;
     char **diff_table = NULL;
+	char *chosen_diff_f = NULL;
     size_t patchn_len, diff_t_len = 0;
     ZIC_RESULT_INIT()
 
@@ -197,15 +189,20 @@ result loadp(const char *toolname, const char *patchname,
         DO_CLEAN_ALL());
 
     if (diff_t_len == 1) {
-        TRY(copy_diff_file(diff_table[0], ppath), DO_CLEAN_ALL())
+		chosen_diff_f = diff_table[0];
     } else {
-        TRY(prompt_for_file_and_load(diff_table, ppath, patchname, diff_t_len),
+        TRY(prompt_diff_file(diff_table, &chosen_diff_f, patchname, diff_t_len),
 			CATCH(ERR_LOAD_CANCELED,
 				  HANDLE_DO_CLEAN_ALL("Canceled")
 				)
-			DO_CLEAN_ALL())
+			DO_CLEAN_ALL());
     }
+	TRY(copy_diff_file(chosen_diff_f, ppath), DO_CLEAN_ALL())
 
+	if (flags.apply) {
+		UNWRAP_DO_CLEAN_ALL(do_apply(chosen_diff_f));
+	}
+	
     CLEANUP_ALL(free_diff_f_table(diff_table, diff_t_len));
     CLEANUP(cl_ppath, free(ppath));
     ZIC_RETURN_RESULT()
