@@ -323,7 +323,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     startp++;
   }
 
-  toolname_argpos = startp - TOOLNAME_ARGPOS;
+  toolname_argpos = startp - TOOLNAME_ARGPOS - 1;
 
   if (toolname_argpos >= (size_t)argc) {
 	  ERROR(ERR_INVARG)

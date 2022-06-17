@@ -11,6 +11,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+static const char *const LESS_CMD = "/bin/less";
 static const char *const XDG_OPEN = "/bin/xdg-open";
 
 typedef result (*open_func)(const char *, const char *, const char *);
@@ -23,8 +24,8 @@ static result xdg_open(const char *url) {
 
   if (fork() == 0) {
     if (execl(XDG_OPEN, XDG_OPEN, url, (char *)NULL)) {
-      EPERROR()
-      exit(1);
+		perror("error");
+		exit(1);
     }
   }
 
@@ -67,7 +68,7 @@ result print_pdescription(const char *toolname, const char *patch_name,
   print_buf = calloc(sp.st_size, sizeof(*print_buf));
   TRY_PTR(print_buf, DO_CLEAN(cl_bufclose));
 
-  TRY_PTR(targetp = popen("less", "w"), DO_CLEAN(cl_printbuf))
+  TRY_PTR(targetp = popen(LESS_CMD, "w"), DO_CLEAN(cl_printbuf))
   
   TRY_UNWRAP_NEG(
       fread(print_buf, sizeof(*print_buf), sp.st_size, patchf), DO_CLEAN_ALL());
@@ -83,9 +84,10 @@ result print_pdescription(const char *toolname, const char *patch_name,
 }
 
 result parse_open_args(int argc, char **argv, const char *basecacherepo) {
-  ZIC_RESULT_INIT()
   open_func openf = NULL;
   int opt;
+  char *toolname = NULL, *patchname = NULL;
+  ZIC_RESULT_INIT();
 
   while ((opt = getopt(argc, argv, "b")) != -1) {
     switch (opt) {
@@ -103,10 +105,15 @@ result parse_open_args(int argc, char **argv, const char *basecacherepo) {
 
   openf = &print_pdescription;
 
-  TRY(openf(argv[2], argv[3], basecacherepo),
+  TRY(parse_tool_and_patch_name(argc, argv, &toolname, &patchname, TOOLNAME_ARGPOS), DO_CLEAN_ALL());
+  TRY(openf(toolname, patchname, basecacherepo),
       CATCH(ERR_SYS, HANDLE_SYS());
 
-	  CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
+	  CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()));
 
+
+  CLEANUP_ALL(
+	  free(toolname);
+	  free(patchname));
   ZIC_RETURN_RESULT()
 }

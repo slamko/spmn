@@ -232,7 +232,7 @@ int parse_load_args(int argc, char **argv, const char *basecacherepo) {
 		}
 	}
 
-	UNWRAP_DO_CLEAN_ALL(parse_tool_and_patch_name(argc, argv, &toolname, &patchname, 2));
+	UNWRAP_DO_CLEAN_ALL(parse_tool_and_patch_name(argc, argv, &toolname, &patchname, TOOLNAME_ARGPOS));
 			
     TRY(loadp(toolname, patchname, basecacherepo, arg), CATCH(ERR_SYS, HANDLE_SYS_DO_CLEAN_ALL());
 
