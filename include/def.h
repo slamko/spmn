@@ -44,6 +44,7 @@
 #define SYNC_CMD "sync"
 #define DOWNLOAD_CMD "load"
 #define OPEN_CMD "open"
+#define APPLY_CMD "apply"
 #define CMD_LEN 8
 #define CMD_ARGPOS 1
 
@@ -56,7 +57,5 @@ DEFINE_ERROR(ERR_ENTRY_NOT_FOUND, 6)
 DEFINE_ERROR(ERR_INVARG, 7)
 
 //#define USE_MULTITHREADED
-#define EPERROR() error(strerror(errno));
-#define OK(RES) RES == 0
 
 #endif

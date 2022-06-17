@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include "commands/download.h"
+#include "commands/apply.h"
 #include "commands/open.h"
 #include "commands/runsearch.h"
 #include "commands/sync.h"
@@ -28,10 +29,12 @@
 
 typedef int (*commandp)(int, char **, const char *);
 
-static const commandp commands[] = {&parse_sync_args, &parse_search_args,
-                                    &parse_open_args, &parse_load_args};
+static const commandp commands[] = {
+    &parse_sync_args, &parse_search_args, &parse_open_args, &parse_load_args,
+    &parse_apply_args
+        };
 
-enum command { SYNC = 0, SEARCH = 1, OPEN = 2, DOWNLOAD = 3 };
+enum command { SYNC = 0, SEARCH = 1, OPEN = 2, DOWNLOAD = 3, APPLY = 4 };
 
 int local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
   return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D ||
@@ -68,6 +71,8 @@ result parse_command(const int argc, char **argv, enum command *commandarg) {
     *commandarg = DOWNLOAD;
   } else if (IS_OK(strncmp(argv[CMD_ARGPOS], OPEN_CMD, sizeof(OPEN_CMD) - 1))) {
     *commandarg = OPEN;
+  } else if (IS_OK(strncmp(argv[CMD_ARGPOS], APPLY_CMD, sizeof(APPLY_CMD) - 1))) {
+    *commandarg = APPLY;
   } else {
     *commandarg = SEARCH;
   }
@@ -108,5 +113,6 @@ int main(int argc, char **argv) {
 		  );
   );
 
-  CLEANUP_ALL(free(basecacherepo))
+  CLEANUP_ALL(free(basecacherepo));
+  ZIC_RETURN_RESULT();
 }
