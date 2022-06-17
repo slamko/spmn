@@ -3,6 +3,7 @@
 #include "utils/entry-utils.h"
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
+#include <bits/getopt_core.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -111,6 +112,7 @@ result copy_diff_file(const char *diff_f, const char *patch_path) {
     TRY_UNWRAP_NEG(read_buf_c, DO_CLEAN_ALL());
     TRY_UNWRAP_NEG(write(dest_diff, copy_buf, read_buf_c), DO_CLEAN_ALL());
 
+	ZIC_RESULT = OK;
     CLEANUP_ALL(free(copy_buf));
     CLEANUP(cl_dest_fd, close(dest_diff));
     CLEANUP(cl_source_fd, close(source_diff));
@@ -177,7 +179,7 @@ result loadp(const char *toolname, const char *patchname,
     char **diff_table = NULL;
 	char *chosen_diff_f = NULL;
     size_t patchn_len, diff_t_len = 0;
-    ZIC_RESULT_INIT()
+    ZIC_RESULT_INIT();
 
     patchn_len = strnlen(patchname, ENTRYLEN);
     TRY(
@@ -209,12 +211,26 @@ result loadp(const char *toolname, const char *patchname,
 }
 
 int parse_load_args(int argc, char **argv, const char *basecacherepo) {
-    ZIC_RESULT_INIT()
+	int option;
+	struct load_args arg = {0};
+	ZIC_RESULT_INIT();
+	
+    if (argc < 4) {
+        ERROR(ERR_INVARG);
+	}
 
-    if (argc < 4)
-        ERROR(ERR_INVARG)
-
-    TRY(loadp(argv[2], argv[3], basecacherepo), CATCH(ERR_SYS, HANDLE_SYS());
+	while ((option = getopt(argc, argv, "a")) != -1) {
+		switch (option) {
+		case 'a':
+			arg.apply = true;
+			break;
+		case '?':
+			ERROR(ERR_INVARG);
+			break;
+		}
+	}
+			
+    TRY(loadp(argv[3], argv[4], basecacherepo, arg), CATCH(ERR_SYS, HANDLE_SYS());
 
         CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
     ZIC_RETURN_RESULT()
