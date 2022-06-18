@@ -72,11 +72,14 @@ static int parse_search_symbols(searchsyms *sargs, char **sstrings, int scount) 
       lastalloc = sstrcnt * scount;
       words = (char **)calloc(lastalloc, sizeof(*words));
     } else if (tstrcnt > lastalloc) {
-      char **wrealloc = realloc(words, tstrcnt * 2);
+		lastalloc = tstrcnt * 2;
+		char **wrealloc = realloc(words, lastalloc * sizeof(*words));
       if (!wrealloc) {
         free(words);
         words = NULL;
+		ERROR(ERR_SYS);
       }
+	  words = wrealloc;
     }
 
     if (!words)
@@ -318,7 +321,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     startp++;
   }
 
-  toolname_argpos = startp - TOOLNAME_ARGPOS - 1;
+  toolname_argpos = startp - TOOLNAME_ARGPOS + 1;
 
   if (toolname_argpos >= (size_t)argc) {
 	  ERROR(ERR_INVARG)
