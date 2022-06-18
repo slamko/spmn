@@ -2,6 +2,7 @@
 #include "utils/entry-utils.h"
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
+#include <bits/types/__FILE.h>
 #include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -109,8 +110,7 @@ result parse_open_args(int argc, char **argv, const char *basecacherepo) {
   TRY(openf(toolname, patchname, basecacherepo),
       CATCH(ERR_SYS, HANDLE_SYS());
 
-	  CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()));
-
+	  CATCH(ERR_LOCAL, bug(__FILE__, __LINE__, strerror(errno)); FAIL()));
 
   CLEANUP_ALL(
 	  free(toolname);

@@ -41,32 +41,35 @@ git_clone(const char *base_cache_repo) {
 result
 run_sync(const char *basecacherepo, int *gitclone_st) {
     pid_t gitpid;
-    ZIC_RESULT_INIT()
+    ZIC_RESULT_INIT();
 
-    UNWRAP_NEG (gitpid = fork())
+	puts("Synchronizing git repositories...");		
+    UNWRAP_NEG (gitpid = fork());
 
     if (gitpid == 0) {
         TRY (check_baserepo_exists(basecacherepo), 
             UNWRAP_NEG (
                 git_pull(basecacherepo)
-            ) 
-        )
+				);
+			);
 
-        UNWRAP_NEG (git_clone(basecacherepo)) 
+        UNWRAP_NEG (git_clone(basecacherepo));
     } 
 
-    UNWRAP_NEG (waitpid(gitpid, gitclone_st, 0))
-    RET_OK()
+    UNWRAP_NEG (waitpid(gitpid, gitclone_st, 0));
+
+	puts("Done.");
+    RET_OK();
 }
 
 int 
 sync_repo(const char *basecacherepo) {
-    ZIC_RESULT_INIT()
+    ZIC_RESULT_INIT();
     int sync_stat;
 
     TRY (run_sync(basecacherepo, &sync_stat),
-        HANDLE_SYS()
-    )
+		 HANDLE_SYS();
+		);
 
     return !!sync_stat;
 }

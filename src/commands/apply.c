@@ -3,6 +3,7 @@
 #include "utils/entry-utils.h"
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
+#include <bits/types/__FILE.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -39,6 +40,6 @@ int parse_apply_args(int argc, char **argv, const char *basecacherepo) {
 
     TRY(applyp(argv[2], argv[3], basecacherepo), CATCH(ERR_SYS, HANDLE_SYS());
 
-        CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL()))
+        CATCH(ERR_LOCAL, bug(__FILE__, __LINE__, strerror(errno)); FAIL()))
     ZIC_RETURN_RESULT()
 }

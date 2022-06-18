@@ -236,7 +236,7 @@ int parse_load_args(int argc, char **argv, const char *basecacherepo) {
 			
     TRY(loadp(toolname, patchname, basecacherepo, arg), CATCH(ERR_SYS, HANDLE_SYS_DO_CLEAN_ALL());
 
-        CATCH(ERR_LOCAL, bug(strerror(errno)); FAIL_DO_CLEAN_ALL()));
+        CATCH(ERR_LOCAL, bug(__FILE__, __LINE__, strerror(errno)); FAIL_DO_CLEAN_ALL()));
 
 	CLEANUP_ALL(
 		free(toolname);

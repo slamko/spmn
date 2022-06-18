@@ -5,7 +5,7 @@
 
 void error(const char* err_format, ...);
 
-void bug(const char *bug_msg, ...);
+void bug(const char *filename, int linenum, const char *bug_msg, ...);
 
 void print_usage(void);
 

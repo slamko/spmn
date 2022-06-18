@@ -20,10 +20,10 @@ error(const char* err_format, ...) {
     va_end(args);
 }
 
-void bug(const char *bug_msg, ...) {
+void bug(const char *filename, int linenum, const char *bug_msg, ...) {
     va_list args;
 
-    fprintf(stderr, BUG_PREFIX, __FILE__, __LINE__, "");
+    fprintf(stderr, BUG_PREFIX, filename, linenum, "");
     vfprintf(stderr, bug_msg, args);
     fprintf(stderr, "\n");
     va_end(args);
