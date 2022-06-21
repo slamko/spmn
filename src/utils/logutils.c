@@ -24,9 +24,11 @@ static const char *usage_msg =
 	"\t\topen: \n"
 	"\t\t\t-b:  show the web page on suckless.org for given patch in browser.\n\n"
 	"\t\tload: \n"
-	"\t\t\t-a:  load and apply patch at once (the same as spm apply)"
+	"\t\t\t-a:  load and apply patch at once (the same as spm apply).\n\n"
 	"\t\tsearch: \n"
-	"\t\t\t-f:  show patch description for each patch found.";
+	"\t\t\t-f:  show patch description for each patch found.\n\n"
+	"\t\tapply: \n"
+	"\t\t\t-f:  apply the patch directly from given file.\n";
 	
 void 
 error(const char* err_format, ...) {

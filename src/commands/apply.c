@@ -33,11 +33,24 @@ static result applyp(const char *toolname, const char *patchname,
 }
 
 int parse_apply_args(int argc, char **argv, const char *basecacherepo) {
-    ZIC_RESULT_INIT()
+	int option;
+	ZIC_RESULT_INIT()
 
     if (argc < 4)
-        ERROR(ERR_INVARG)
+        ERROR(ERR_INVARG);
 
+	while ((option = getopt(argc, argv, ":f")) != -1) {
+		switch (option) {
+		case 'f':
+			UNWRAP_ERR(do_apply(argv[3]), ERR_SYS);
+			RET_OK();
+		case ':':
+			ERROR(ERR_INVARG);
+		case '?':
+			ERROR(ERR_INVARG);
+		}
+	}
+			
     TRY(applyp(argv[2], argv[3], basecacherepo), CATCH(ERR_SYS, HANDLE_SYS());
 
         CATCH(ERR_LOCAL, bug(__FILE__, __LINE__, strerror(errno)); FAIL()))
