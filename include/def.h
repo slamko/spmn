@@ -16,7 +16,7 @@
 
 #define LINEBUF 4096
 #define PATHBUF LINEBUF
-#define DESCRIPTION_SECTION "Description" 
+#define DESCRIPTION_SECTION "Description"
 #define DESCRIPTION_SECTION_LENGTH sizeof(DESCRIPTION_SECTION)
 #define GREP_BIN "/bin/grep"
 #define DESCFILE "descfile.XXXXXX"
@@ -43,12 +43,25 @@
 #define CMD_LEN 8
 #define CMD_ARGPOS 1
 
+#define SPM_VERSION "0.2"
+
 #define MINI_ZIC
 #include <zic/zic.h>
 
 DEFINE_ERROR(ERR_ENTRY_NOT_FOUND, 6)
 
 DEFINE_ERROR(ERR_INVARG, 7)
+
+#define KINDA_USE_ARG(ARG) (void)ARG;
+
+#define KINDA_USE_2ARG(ARG1, ARG2)                                             \
+    (void)ARG1;                                                                \
+    (void)ARG2;
+
+#define KINDA_USE_3ARG(ARG1, ARG2, ARG3)                                       \
+    (void)ARG1;                                                                \
+    (void)ARG2;                                                                \
+    (void)ARG3;
 
 //#define USE_MULTITHREADED
 

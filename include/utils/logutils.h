@@ -9,6 +9,8 @@ void bug(const char *filename, int linenum, const char *bug_msg, ...);
 
 void print_usage(void);
 
+void print_version(void);
+
 void error_nolocalrepo(void);
 
 #define DIE_M(CLEANUP) { \

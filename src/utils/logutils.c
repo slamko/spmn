@@ -46,9 +46,12 @@ void bug(const char *filename, int linenum, const char *bug_msg, ...) {
     va_end(args);
 }
 
-void
-print_usage(void) {
+void print_usage(void) {
     puts(usage_msg);
+}
+
+void print_version(void) {
+	puts("spm version: " SPM_VERSION);
 }
 
 void 
