@@ -19,7 +19,10 @@ static const char *usage_msg =
 	"\t\tsync   - synchonize local patches repository.\n"
 	"\t\tload   - download patch for given tool with patch name.\n"
 	"\t\topen   - show full patch description.\n"
-	"\t\tapply  - download and apply the patch.\n"
+	"\t\tapply  - download and apply the patch.\n\n"
+	"\t\thelp    (--help/-h)    - to see this page.\n"
+	"\t\tversion (--version/-v) - to get version info.\n"
+	
 	"\n\tOptions:\n"
 	"\t\topen: \n"
 	"\t\t\t-b:  show the web page on suckless.org for given patch in browser.\n\n"
