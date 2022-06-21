@@ -1,6 +1,4 @@
-#include "commands/search.h"
 #include "def.h"
-#include <bits/getopt_core.h>
 #include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
@@ -19,6 +17,8 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "commands/runsearch.h"
+#include "commands/search.h"
 #include "utils/entry-utils.h"
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
@@ -67,7 +67,6 @@ static int parse_search_symbols(searchsyms *sargs, char **sstrings,
         parsedsstr = strndup(searchstr, sstrlen);
         sstrcnt = getwords_count(searchstr, sstrlen);
         tstrcnt += sstrcnt;
-        printf("\n%zu", tstrcnt);
 
         if (!words) {
             lastalloc = sstrcnt * scount;
@@ -316,7 +315,7 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
 
     ZIC_RESULT_INIT();
 
-    if (IS_OK(strncmp(argv[CMD_ARGPOS], "search", CMD_LEN))) {
+    if (IS_OK(strncmp(argv[CMD_ARGPOS], SEARCH_CMD, CMD_LEN))) {
         startp++;
     }
 

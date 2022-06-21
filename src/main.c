@@ -34,7 +34,7 @@ static const commandp commands[] = {&parse_sync_args, &parse_search_args,
                                     &parse_open_args, &parse_load_args,
                                     &parse_apply_args};
 
-static const char *const command_names[] = {"sync", "search", "open", "load",
+static const char *const command_names[] = {"sync", SEARCH_CMD, "open", "load",
                                             "apply"};
 
 enum command { SYNC = 0, SEARCH = 1, OPEN = 2, DOWNLOAD = 3, APPLY = 4 };

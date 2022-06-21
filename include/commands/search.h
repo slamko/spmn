@@ -1,3 +1,6 @@
+#ifndef SEARCH_COMMAND_DEF
+#define SEARCH_COMMAND_DEF
+
 #include <pthread.h>
 #include "def.h"
 #include "stdbool.h"
@@ -29,3 +32,4 @@ typedef struct threadargs lookupthread_args;
 void *search_entry(void *thread_args);
 
 result lookup_entries(const lookupthread_args *args);
+#endif

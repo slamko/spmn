@@ -5,12 +5,29 @@
 #include "def.h"
 #include "utils/logutils.h"
 
-static const char *usage_msg = "Usage: \n"
+/*static const char *usage_msg_short = "Usage: \n"
 	"\tspm [search] <tool> <keywords>\n"
 	"\tspm <sync>\n"
 	"\tspm <open> <tool> <patch> [-b]\n"
 	"\tspm <load> <tool> <patch> [-a]\n";
-
+*/
+static const char *usage_msg =
+	"\tUsage: \n"
+	"\tspm [command] [args] [options]\n"
+	"\n\tCommands:\n"
+	"\t\tsearch - search for patch with given keywords (default command).\n"
+	"\t\tsync   - synchonize local patches repository.\n"
+	"\t\tload   - download patch for given tool with patch name.\n"
+	"\t\topen   - show full patch description.\n"
+	"\t\tapply  - download and apply the patch.\n"
+	"\n\tOptions:\n"
+	"\t\topen: \n"
+	"\t\t\t-b:  show the web page on suckless.org for given patch in browser.\n\n"
+	"\t\tload: \n"
+	"\t\t\t-a:  load and apply patch at once (the same as spm apply)"
+	"\t\tsearch: \n"
+	"\t\t\t-f:  show patch description for each patch found.";
+	
 void 
 error(const char* err_format, ...) {
     va_list args;
@@ -36,5 +53,5 @@ print_usage(void) {
 
 void 
 error_nolocalrepo(void) {
-    error("Unable to find base suckless repo. Try running 'spm sync'");
+    error("Could not find base suckless repo. Try running 'spm sync'");
 }
