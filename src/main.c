@@ -30,6 +30,8 @@
 
 typedef int (*commandp)(int, char **, const char *);
 
+#define CMD_CNT 7
+
 result help(int argc, char **argv, const char *basecacherepo) {
     KINDA_USE_3ARG(argc, argv, basecacherepo);
     print_usage();
@@ -42,12 +44,12 @@ result version(int argc, char **argv, const char *basecacherepo) {
     RET_OK()
 }
 
-static const commandp commands[] = {&parse_sync_args,  &parse_search_args,
+static const commandp commands[CMD_CNT] = {&parse_sync_args,  &parse_search_args,
                                     &parse_open_args,  &parse_load_args,
                                     &parse_apply_args, &help,
                                     &version};
 
-static const char *const command_names[] = {
+static const char *const command_names[CMD_CNT] = {
     "sync", SEARCH_CMD, "open", "load", "apply", "help", "version"};
 
 enum command {
@@ -102,7 +104,7 @@ static result parse_command(const int argc, char **argv,
 		ERROR(ERR_INVARG);
     }
 
-    for (size_t cmdi = 0; cmdi < sizeof(command_names); cmdi++) {
+    for (size_t cmdi = 0; cmdi < CMD_CNT; cmdi++) {
         if (IS_OK(strcmp(command_names[cmdi], argv[CMD_ARGPOS]))) {
             *commandarg = (enum command)cmdi;
             set_cmd = 1;
@@ -119,7 +121,7 @@ static result parse_command(const int argc, char **argv,
 int main(int argc, char **argv) {
     char *basecacherepo;
     enum command cmd;
-    ZIC_RESULT_INIT()
+    ZIC_RESULT_INIT();
 
     if (parse_command(argc, argv, &cmd)) {
         print_usage();
@@ -143,7 +145,7 @@ int main(int argc, char **argv) {
     }
 
     TRY(commands[(int)cmd](argc, argv, basecacherepo),
-        CATCH(ERR_INVARG, print_usage(); FAIL_DO_CLEAN_ALL();););
+        CATCH(ERR_INVARG, print_usage(); FAIL_DO_CLEAN_ALL()));
 
     CLEANUP_ALL(free(basecacherepo));
     ZIC_RETURN_RESULT();
