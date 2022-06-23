@@ -44,10 +44,10 @@ result version(int argc, char **argv, const char *basecacherepo) {
     RET_OK()
 }
 
-static const commandp commands[CMD_CNT] = {&parse_sync_args,  &parse_search_args,
-                                    &parse_open_args,  &parse_load_args,
-                                    &parse_apply_args, &help,
-                                    &version};
+static const commandp commands[CMD_CNT] = {
+    &parse_sync_args, &parse_search_args, &parse_open_args,
+    &parse_load_args, &parse_apply_args,  &help,
+    &version};
 
 static const char *const command_names[CMD_CNT] = {
     "sync", SEARCH_CMD, "open", "load", "apply", "help", "version"};
@@ -94,14 +94,16 @@ static result parse_command(const int argc, char **argv,
         ERROR(ERR_INVARG);
 
     if (*argv[CMD_ARGPOS] == '-') {
-		if (IS_OK(strcmp(argv[CMD_ARGPOS], "--help")) || IS_OK(strcmp(argv[CMD_ARGPOS], "-h"))) {
-			*commandarg = HELP;
-			RET_OK();
-		} else if (IS_OK(strcmp(argv[CMD_ARGPOS], "--version")) || IS_OK(strcmp(argv[CMD_ARGPOS], "-v"))) {
-			*commandarg = VERSION;
-			RET_OK();
-		}
-		ERROR(ERR_INVARG);
+        if (IS_OK(strcmp(argv[CMD_ARGPOS], "--help")) ||
+            IS_OK(strcmp(argv[CMD_ARGPOS], "-h"))) {
+            *commandarg = HELP;
+            RET_OK();
+        } else if (IS_OK(strcmp(argv[CMD_ARGPOS], "--version")) ||
+                   IS_OK(strcmp(argv[CMD_ARGPOS], "-v"))) {
+            *commandarg = VERSION;
+            RET_OK();
+        }
+        ERROR(ERR_INVARG);
     }
 
     for (size_t cmdi = 0; cmdi < CMD_CNT; cmdi++) {
@@ -133,7 +135,7 @@ int main(int argc, char **argv) {
     }
 
     if (cmd != SYNC) {
-        if (!check_baserepo_exists(basecacherepo)) {
+        if (!check_baserepo_valid(basecacherepo)) {
             error_nolocalrepo();
             FAIL_DO_CLEAN_ALL();
         }

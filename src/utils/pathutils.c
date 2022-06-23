@@ -231,3 +231,16 @@ check_baserepo_exists(const char *basecacherepo) {
 
     return false;
 }
+
+bool 
+check_baserepo_valid(const char *basecacherepo) {
+    if (check_baserepo_exists(basecacherepo)) {
+		int fcnt;
+		DIR *repo_d;
+
+		repo_d = opendir(basecacherepo);
+		for (fcnt = 0; (readdir(repo_d)); fcnt++);
+		return fcnt > 3;
+	}
+    return false;
+}

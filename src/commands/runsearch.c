@@ -326,14 +326,14 @@ int parse_search_args(int argc, char **argv, const char *basecacherepo) {
     }
 
     TRY(append_toolpath(&patchdir, basecacherepo, argv[toolname_argpos]),
-        HANDLE("Suckless tool with name: '%s' not found",
+        HANDLE_PRINT_ERR("Suckless tool with name: '%s' not found",
                argv[toolname_argpos]););
 
     searchargs = calloc(1, sizeof(*searchargs));
     TRY_PTR(searchargs, DO_CLEAN(cl_pdir));
 
     TRY(parse_search_symbols(searchargs, argv + startp, argc - startp),
-        HANDLE_DO_CLEAN_ALL("Invalid search string"));
+        HANDLE_PRINT_ERR_DO_CLEAN_ALL("Invalid search string"));
 
     while ((option = getopt(argc, argv, "f")) != -1) {
         switch (option) {

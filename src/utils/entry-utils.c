@@ -66,14 +66,14 @@ result build_patch_path(char **path, const char *toolname,
     toolname_len = strnlen(toolname, ENTRYLEN);
 
     TRY(check_entrname_valid(patch_name, patchn_len),
-        HANDLE("Invalid patch name: '%s'", patch_name));
+        HANDLE_PRINT_ERR("Invalid patch name: '%s'", patch_name));
 
     TRY(check_entrname_valid(toolname, toolname_len),
-        HANDLE("Invalid tool name: '%s'", toolname));
+        HANDLE_PRINT_ERR("Invalid tool name: '%s'", toolname));
 
     TRY(get_tool_path(&tool_path, basecacherepo, toolname),
         CATCH(ERR_ENTRY_NOT_FOUND,
-              HANDLE_DO_CLEAN_ALL("Suckless tool with name: '%s' not found",
+              HANDLE_PRINT_ERR_DO_CLEAN_ALL("Suckless tool with name: '%s' not found",
                                   toolname));
 
         CATCH(ERR_SYS, ERROR_DO_CLEAN_ALL(ERR_SYS)));
@@ -91,7 +91,7 @@ result append_patch_dir(char **full_pdir, char *ppath, const char *patch_name,
     UNWRAP(snpappend(full_pdir, basecacherepo, ppath, PATHBUF));
 
     TRY(check_patch_path_exists(*full_pdir),
-        HANDLE("A patch with name: '%s' not found", patch_name));
+        HANDLE_PRINT_ERR("A patch with name: '%s' not found", patch_name));
     ZIC_RETURN_RESULT();
 }
 

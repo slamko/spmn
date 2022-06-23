@@ -38,7 +38,7 @@ error(const char* err_format, ...) {
     va_list args;
 
     va_start(args, err_format);
-    FORMAT_ERR(err_format, args)
+    PRINT_TO_STDERR(err_format, args);
     va_end(args);
 }
 
