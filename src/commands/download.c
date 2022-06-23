@@ -1,4 +1,3 @@
-
 #include "def.h"
 #include "sys/sendfile.h"
 #include "utils/entry-utils.h"
@@ -9,11 +8,13 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <inttypes.h>
 #include "commands/download.h"
 #include "commands/apply.h"
 
@@ -123,28 +124,33 @@ static result copy_diff_file(const char *diff_f, const char *patch_path) {
 
 static result read_prompt_diff_file(size_t *input_val, size_t diff_t_len) {
     char read_buf[ENTRYLEN] = {0};
-    size_t tmp_input = 0;
+    uintmax_t rval = 0;
 
     putc('\n', stdout);
 
     for (char *prompt_msg = ENTER_NUMBER_PROMPT; true;) {
-        printf("\r%s: ", prompt_msg);
-        UNWRAP_PTR(fgets(read_buf, ENTRYLEN - 1, stdin))
+        printf("\33[A\33[2K\r%s: ", prompt_msg);
+        UNWRAP_PTR(fgets(read_buf, ENTRYLEN - 1, stdin));
 
-        if (sscanf(read_buf, "%zu", &tmp_input) != EOF) {
-            if (tmp_input > diff_t_len) {
-                prompt_msg = "Please, enter a number from the listed range";
-                continue;
-            }
-			if (tmp_input == 0) {
-				input_val = NULL;
-				ERROR(ERR_LOAD_CANCELED)
-			}
-            break;
-        }
-        prompt_msg = ENTER_NUMBER_PROMPT;
+		rval = strtoumax(read_buf, NULL, 10);
+		if (rval == UINTMAX_MAX || rval > SIZE_MAX) {
+            prompt_msg = "Please, enter a number from the listed range";
+			continue;
+		}
+
+		if (rval == 0) {
+			input_val = NULL;
+			ERROR(ERR_LOAD_CANCELED);
+		}
+
+		if ((size_t)rval > diff_t_len) {
+			prompt_msg = "Please, enter a number from the listed range";
+			continue;
+		}
+		
+        break;
     }
-    *input_val = tmp_input;
+    *input_val = (size_t)rval;
     RET_OK()
 }
 
@@ -196,7 +202,7 @@ result loadp(const char *toolname, const char *patchname,
     } else {
         TRY(prompt_diff_file(diff_table, &chosen_diff_f, patchname, diff_t_len),
 			CATCH(ERR_LOAD_CANCELED,
-				  HANDLE_PRINT_DO_CLEAN_ALL("Canceled")
+				  HANDLE_PRINT_DO_CLEAN_ALL("Canceled\n")
 				)
 			DO_CLEAN_ALL());
     }
