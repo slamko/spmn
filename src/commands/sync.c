@@ -3,13 +3,13 @@
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
 #include <dirent.h>
+#include <ftw.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <ftw.h>
 
 static const char *const GIT_CMD = "/bin/git";
 static const char *const CLONE_CMD = "clone";
@@ -24,21 +24,20 @@ static int git_pull(const char *base_cache_repo) {
 }
 
 static int git_clone(const char *base_cache_repo) {
-    return execl(GIT_CMD, GIT_CMD, CLONE_CMD, SUCKLESS_REPO, base_cache_repo,
-                 (char *)NULL);
+    return execl(GIT_CMD, GIT_CMD, CLONE_CMD, QUITE_ARG, SUCKLESS_REPO,
+                 base_cache_repo, (char *)NULL);
 }
 
-int unlink_cb(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf)
-{
-	KINDA_USE_3ARG(sb, typeflag, ftwbuf);
+int unlink_cb(const char *fpath, const struct stat *sb, int typeflag,
+              struct FTW *ftwbuf) {
+    KINDA_USE_3ARG(sb, typeflag, ftwbuf);
     if (remove(fpath))
         perror(fpath);
 
     return OK;
 }
 
-int rm_repo(const char *path)
-{
+int rm_repo(const char *path) {
     return nftw(path, unlink_cb, 64, FTW_DEPTH | FTW_PHYS);
 }
 
@@ -56,7 +55,7 @@ result run_sync(const char *basecacherepo, int *gitclone_st) {
                     exit(FAIL);
                 }
             }
-			rm_repo(basecacherepo);
+            rm_repo(basecacherepo);
         }
 
         if (git_clone(basecacherepo)) {

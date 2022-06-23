@@ -10,8 +10,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-// static const size_t HTTPS_PLEN      = sizeof(HTTPS_PREF);
-
 result append_patchmd(char **buf, const char *patchdir, char *patch) {
     char *patchmd = NULL;
 
