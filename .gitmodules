@@ -1,0 +1,3 @@
+[submodule "zic"]
+	path = zic
+	url = https://github.com/slamko/zic.git
