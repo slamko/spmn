@@ -14,6 +14,8 @@ SRCMAIN:=$(wildcard $(SRCD)/*.c)
 SRCUTILS:=$(wildcard $(SRCD)/$(UTILSD)/*.c)
 SRCCOMMANDS:=$(wildcard $(SRCD)/$(CMDD)/*.c)
 SRC=$(SRCMAIN) $(SRCUTILS) $(SRCCOMMANDS)
+BIND=/bin
+BIN:=$(BIND)/$(TARGET)
 
 OBJS=$(SRC:$(SRCD)/%.c=$(BUILDD)/%.o)
 OBJDIRS=$(BUILDD) $(BUILDD)/$(UTILSD) $(BUILDD)/$(CMDD)
@@ -39,6 +41,16 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
+
+install: $(TARGET) $(OBJDIRS)
+	mkdir -p $(BIND)
+	cp -f ./$(TARGET) $(BIN)
+	chmod 755 $(BIN)
+
+uninstall:
+	$(RM) $(BIN)
+
+.PHONY: clean
 
 clean: 
 	$(RM) $(addsuffix /*.o, $(OBJDIRS))
