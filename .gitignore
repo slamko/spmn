@@ -1,4 +1,5 @@
 *.o
-sise
+spm
 .vscode/
 .cache/
+*.diff
