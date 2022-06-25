@@ -3,3 +3,4 @@ spm
 .vscode/
 .cache/
 *.diff
+spm-*/
