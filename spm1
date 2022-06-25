@@ -1,0 +1,59 @@
+.TH SPM 1 2022-07-31 GNU
+.SH NAME
+spm \- Suckless Patch Manager
+.SH SYNOPSIS
+.B spm
+[\fBcommand\fR]
+[\fBargs\fR]
+[\fBoptions\fR]
+.SH DESCRIPTION
+.B spm
+Search, View, Download, Apply patches on suckles.org from the terminal.
+.SH COMMANDS
+.TP
+.BR search " " \fItool " " \fIkeywords 
+search a patch for a given tool with keywords.
+.TP
+.BR load " " \fItool " " \fIpatch
+down load the patch for a given tool.
+.TP
+.BR open " " \fItool " " \fIpatch
+show full description of the patch for a given tool.
+.TP
+.BR apply " " \fItool " " \fIpatch
+download and apply the patch for a given tool.
+(equivalent to spm load tool patch -a)
+.TP
+.BR sync
+synchronize cached repository.
+.TP
+.BR help
+see help message.
+.TP
+.BR version
+see version info.
+.SH OPTIONS
+.TP
+.BR open ": " \-b
+open patch description in the default browser.
+.TP
+.BR load ": " \-a
+apply after downloading the patch.
+.TP
+.BR apply ": " \-f " " \fIfile
+apply the patch directly from the diff file.
+.TP
+.BR \-\-help ", " \-h
+see help message.
+.TP
+.BR \-\-version ", " \-v
+see version info.
+.SH AUTHOR
+Viaceslavus <https://github.com/slamko/>
+.SH BUGS
+Report bugs at <https://github.com/slamko/spm/issues/>
+.SH SEE ALSO
+.BR dwm (1) ,
+.BR st (1) ,
+.BR dmenu (1),
+<suckless.org>
