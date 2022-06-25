@@ -51,20 +51,20 @@ install: $(TARGET) $(OBJDIRS)
 installdirs: $(TARGET) COPYING README.md
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/spm
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/spm
-	mkdir $(TARGET)-$(VERSION)/usr/bin
-	mkdir -p $(TARGET)-$(VERSION)/usr/man/man1/
+	mkdir -p $(TARGET)-$(VERSION)/usr/bin
+	mkdir -p $(TARGET)-$(VERSION)/usr/share/man/man1/
 	cp COPYING $(TARGET)-$(VERSION)/usr/share/licenses/spm
 	cp README.md $(TARGET)-$(VERSION)/usr/share/doc/spm
 	cp $(TARGET) $(TARGET)-$(VERSION)/usr/bin
-	cp spm1 $(TARGET)-$(VERSION)/usr/man/man1/
+	cp spm.1 $(TARGET)-$(VERSION)/usr/share/man/man1/
 
 xbps-clean:
 	$(RM) x86_64-repodata
-	$(RM) spm-1.0_3.x86_64.xbps
+	$(RM) $(TARGET)-$(VERSION).xbps
 	sudo xbps-remove spm
 
 xbps-build: xbps-clean
-	./build.sh
+	./xbps-create.sh
 	xbps-rindex -a *.xbps
 	sudo xbps-install --repository=$(shell pwd) spm
 

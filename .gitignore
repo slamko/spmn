@@ -4,3 +4,5 @@ spm
 .cache/
 *.diff
 spm-*/
+*.xbps
+*.deb
