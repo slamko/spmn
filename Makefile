@@ -26,7 +26,9 @@ HEADERSUTILS:=$(SRCUTILS:$(SRCD)/%.c=$(HEADERD)/%.h)
 HEADERSCMD:=$(SRCCOMMANDS:$(SRCD)/%.c=$(HEADERD)/%.h)
 HEADERS=$(HEADERSMAIN) $(HEADERSUTILS) $(HEADERSCMD)
 
-all: $(TARGET) $(OBJDIRS)
+all: executable
+
+executable: $(OBJDIRS) $(TARGET)
 
 $(TARGET) : $(OBJS)
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
@@ -43,12 +45,12 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-install: $(TARGET) $(OBJDIRS)
+install: executable
 	mkdir -p $(BIND)
 	cp -f ./$(TARGET) $(BIN)
 	chmod 755 $(BIN)
 
-installdirs: $(TARGET) COPYING README.md
+installdirs: executable COPYING README.md
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/spm
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/spm
 	mkdir -p $(TARGET)-$(VERSION)/usr/bin
@@ -73,6 +75,6 @@ uninstall:
 
 .PHONY: clean
 
-clean: 
-	$(RM) $(addsuffix /*.o, $(OBJDIRS))
+clean:
+	$(RM) -r $(BUILDD)	
 	$(RM) $(TARGET)
