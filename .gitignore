@@ -6,3 +6,4 @@ spm
 spm-*/
 *.xbps
 *.deb
+*repodata

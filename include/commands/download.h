@@ -1,5 +1,5 @@
 #include <stdbool.h>
-#include <zic/zic.h>
+#include "zic/zic.h"
 
 struct load_args {
 	bool apply;
