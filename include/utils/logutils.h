@@ -11,8 +11,6 @@ void print_usage(void);
 
 void print_version(void);
 
-void error_nolocalrepo(void);
-
 #define DIE_M(CLEANUP) { \
     perror(FATALERR_PREFIX); \
     CLEANUP; \

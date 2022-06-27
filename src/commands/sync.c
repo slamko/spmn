@@ -46,7 +46,6 @@ static int git_clone(const char *base_cache_repo) {
 
 int unlink_cb(const char *fpath, const struct stat *sb, int typeflag,
               struct FTW *ftwbuf) {
-    KINDA_USE_3ARG(sb, typeflag, ftwbuf);
     if (remove(fpath))
         perror(fpath);
 
@@ -96,8 +95,5 @@ int sync_repo(const char *basecacherepo) {
 }
 
 int parse_sync_args(int argc, char **argv, const char *basecacherepo) {
-    (void)argv;
-    (void)argc;
-
     return sync_repo(basecacherepo);
 }

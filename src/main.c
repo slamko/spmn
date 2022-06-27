@@ -42,6 +42,7 @@ spm. If not, see <https://www.gnu.org/licenses/>.
 #include "commands/sync.h"
 #include "utils/logutils.h"
 #include "utils/pathutils.h"
+#include "zic.h"
 
 typedef int (*commandp)(int, char **, const char *);
 
@@ -151,12 +152,12 @@ int main(int argc, char **argv) {
 
     if (cmd != SYNC) {
         if (!check_baserepo_valid(basecacherepo)) {
-            error_nolocalrepo();
+            PRINT_ERR("Could not find base suckless repo. Run '%s sync' to initialize mirror repository.", argv[0]);
             FAIL_DO_CLEAN_ALL();
         }
 
         if (try_sync_caches(basecacherepo)) {
-            error("Failed to autosync caches. Continuing without syncing...");
+            PRINT_ERR("Failed to autosync caches. Continuing without syncing...");
             FAIL_DO_CLEAN_ALL();
         }
     }

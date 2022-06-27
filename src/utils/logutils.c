@@ -20,6 +20,7 @@ spm. If not, see <https://www.gnu.org/licenses/>.
 #include <string.h>
 #include "def.h"
 #include "utils/logutils.h"
+#include "zic.h"
 
 static const char *usage_msg =
     "\tUsage: \n"
@@ -50,16 +51,16 @@ error(const char* err_format, ...) {
     va_list args;
 
     va_start(args, err_format);
-    PRINT_TO_STDERR(err_format, args);
+    PRINT_ERR(err_format, args);
     va_end(args);
 }
 
 void bug(const char *filename, int linenum, const char *bug_msg, ...) {
     va_list args;
 
-    fprintf(stderr, BUG_PREFIX, filename, linenum, "");
-    vfprintf(stderr, bug_msg, args);
-    fprintf(stderr, "\n");
+	va_start(args, bug_msg);
+    PRINT_TO_STDERR(BUG_PREFIX, filename, linenum, "");
+    PRINT_ERR(bug_msg, args);
     va_end(args);
 }
 
@@ -69,9 +70,4 @@ void print_usage(void) {
 
 void print_version(void) {
 	puts("spm version: " SPM_VERSION);
-}
-
-void 
-error_nolocalrepo(void) {
-    error("Could not find base suckless repo. Try running 'spm sync'");
 }

@@ -2,7 +2,7 @@
 #ifndef DEF_BASE
 #define DEF_BASE
 
-#define BASEREPO "/.cache/sise/sites/"
+#define BASEREPO "/.cache/spm/sites/"
 #define PATCHESDIR ".suckless.org/patches/"
 #define PATCHESP "/patches/"
 #define DWM "dwm"
