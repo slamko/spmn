@@ -1,4 +1,4 @@
-#include "zic/zic.h"
+#include "zic.h"
 
 result openp(void);
 

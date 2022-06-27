@@ -1,164 +1,149 @@
 [
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/main.c",
       "-o",
-      "build/main.o"
+      "build/main.o",
+      "src/main.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/main.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/main.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/main.c",
+    "output": "/home/slamko/Documents/cc/sise/build/main.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/utils/entry-utils.c",
       "-o",
-      "build/utils/entry-utils.o"
+      "build/commands/apply.o",
+      "src/commands/apply.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/utils/entry-utils.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/utils/entry-utils.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/apply.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/apply.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/utils/logutils.c",
       "-o",
-      "build/utils/logutils.o"
+      "build/commands/download.o",
+      "src/commands/download.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/utils/logutils.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/utils/logutils.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/download.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/download.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/utils/pathutils.c",
       "-o",
-      "build/utils/pathutils.o"
+      "build/commands/open.o",
+      "src/commands/open.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/utils/pathutils.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/utils/pathutils.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/open.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/open.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/commands/download.c",
       "-o",
-      "build/commands/download.o"
+      "build/commands/runsearch.o",
+      "src/commands/runsearch.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/commands/download.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/commands/download.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/runsearch.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/runsearch.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/commands/open.c",
       "-o",
-      "build/commands/open.o"
+      "build/commands/search.o",
+      "src/commands/search.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/commands/open.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/commands/open.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/search.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/search.o"
   },
   {
     "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
+      "/bin/gcc",
       "-Wall",
       "-Wextra",
+      "-Wno-unused-parameter",
       "-Werror",
       "-pedantic",
       "-g",
       "-Iinclude/",
+      "-I.",
+      "-Izic/lib",
       "-c",
-      "src/commands/runsearch.c",
       "-o",
-      "build/commands/runsearch.o"
+      "build/commands/sync.o",
+      "src/commands/sync.c"
     ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/commands/runsearch.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/commands/runsearch.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-pedantic",
-      "-g",
-      "-Iinclude/",
-      "-c",
-      "src/commands/search.c",
-      "-o",
-      "build/commands/search.o"
-    ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/commands/search.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/commands/search.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/x86_64-linux-gnu-gcc-10",
-      "-Wall",
-      "-Wextra",
-      "-Werror",
-      "-pedantic",
-      "-g",
-      "-Iinclude/",
-      "-c",
-      "src/commands/sync.c",
-      "-o",
-      "build/commands/sync.o"
-    ],
-    "directory": "/home/slamko/docs/proj/cc/sls",
-    "file": "/home/slamko/docs/proj/cc/sls/src/commands/sync.c",
-    "output": "/home/slamko/docs/proj/cc/sls/build/commands/sync.o"
+    "directory": "/home/slamko/Documents/cc/sise",
+    "file": "/home/slamko/Documents/cc/sise/src/commands/sync.c",
+    "output": "/home/slamko/Documents/cc/sise/build/commands/sync.o"
   }
 ]

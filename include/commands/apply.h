@@ -1,4 +1,4 @@
-#include "zic/zic.h"
+#include "zic.h"
 
 result do_apply(const char *diff_file);
 

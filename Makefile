@@ -2,7 +2,7 @@ CC=gcc
 TARGET=spm
 LIBS=-pthread -lm -lbsd 
 WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
-CFLAGS=$(WEFLAGS) -g -Iinclude/ -I.
+CFLAGS=$(WEFLAGS) -g -Iinclude/ -I. -Izic/lib
 VERSION=1.0_3
 
 SRCD=src

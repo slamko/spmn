@@ -48,7 +48,7 @@
 #define SPM_VERSION "0.2"
 
 #define MINI_ZIC
-#include "zic/zic.h"
+#include "zic.h"
 
 DEFINE_ERROR(ERR_ENTRY_NOT_FOUND, 6)
 

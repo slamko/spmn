@@ -1,4 +1,4 @@
-#include "zic/zic.h"
+#include "zic.h"
 #define SYNC_INTERVAL_D 7
 
 result run_sync();
