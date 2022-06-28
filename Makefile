@@ -45,33 +45,49 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-install: executable
-	mkdir -p $(BIND)
-	cp -f ./$(TARGET) $(BIN)
-	chmod 755 $(BIN)
-
 installdirs: executable COPYING README.md
-	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/spm
-	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/spm
+	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
+	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/$(TARGET)
 	mkdir -p $(TARGET)-$(VERSION)/usr/bin
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/man/man1/
-	cp COPYING $(TARGET)-$(VERSION)/usr/share/licenses/spm
+	cp COPYING $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
 	cp README.md $(TARGET)-$(VERSION)/usr/share/doc/spm
 	cp $(TARGET) $(TARGET)-$(VERSION)/usr/bin
-	cp spm.1 $(TARGET)-$(VERSION)/usr/share/man/man1/
+	cp $(TARGET).1 $(TARGET)-$(VERSION)/usr/share/man/man1/
+
+deb-installdirs: installdirs
+	mkdir -p $(TARGET)-$(VERSION)/DEBIAN
+	cp DEBIAN_control $(TARGET)-$(VERSION)/DEBIAN/control
+
+clean-pckgdirs:
+	rm -rf $(TARGET)-$(VERSION)
 
 xbps-clean:
 	$(RM) x86_64-repodata
 	$(RM) $(TARGET)-$(VERSION).xbps
-	sudo xbps-remove spm
+	sudo xbps-remove $(TARGET)
 
 xbps-build: xbps-clean
 	./xbps-create.sh
 	xbps-rindex -a *.xbps
-	sudo xbps-install --repository=$(shell pwd) spm
+	sudo xbps-install --repository=$(shell pwd) $(TARGET)
+
+install: executable
+	mkdir -p $(BIND)
+	mkdir -p /usr/share/licenses/$(TARGET)
+	mkdir -p /usr/share/doc/$(TARGET)
+	mkdir -p /usr/share/man/man1/
+	cp -f ./$(TARGET) $(BIN)
+	cp -f ./COPYING /usr/share/licenses/$(TARGET)/COPYING
+	cp -f ./README.md /usr/share/doc/$(TARGET)/README
+	cp -f ./$(TARGET).1 /usr/share/man/man1/$(TARGET).1
+	chmod 755 $(BIN)
 
 uninstall:
 	$(RM) $(BIN)
+	$(RM) /usr/share/licenses/$(TARGET)/COPYING
+	$(RM) /usr/share/doc/$(TARGET)/README
+	$(RM) /usr/share/man/man1/$(TARGET).1
 
 .PHONY: clean
 
