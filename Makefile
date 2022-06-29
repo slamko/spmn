@@ -45,6 +45,10 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+include ./packaging/deb/Makefile
+
+include ./packaging/xbps/Makefile
+
 installdirs: executable COPYING README.md
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/$(TARGET)
@@ -61,16 +65,6 @@ deb-installdirs: installdirs
 
 clean-pckgdirs:
 	rm -rf $(TARGET)-$(VERSION)
-
-xbps-clean:
-	$(RM) x86_64-repodata
-	$(RM) $(TARGET)-$(VERSION).xbps
-	sudo xbps-remove $(TARGET)
-
-xbps-build: xbps-clean
-	./xbps-create.sh
-	xbps-rindex -a *.xbps
-	sudo xbps-install --repository=$(shell pwd) $(TARGET)
 
 install: executable
 	mkdir -p $(BIND)

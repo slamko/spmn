@@ -8,5 +8,5 @@ RUN apt install -y apt-utils
 RUN apt install -y make build-essential binutils lintian debhelper dh-make devscripts
 RUN chmod +x ./deb-build.sh
 
-CMD ["./deb-build.sh"]
+CMD ["./packaging/deb/deb-build.sh"]
 
