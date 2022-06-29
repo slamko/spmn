@@ -2,3 +2,4 @@
 
 make deb-installdirs
 dpkg-deb --build spm-1.0_3/
+make clean-pkgdirs

@@ -3,3 +3,6 @@ build-image:
 
 build-deb:
 	@docker run -v $(shell pwd):/usr/src/$(TARGET) deb-pkg-$(TARGET)-$(VERSION)
+
+clean-deb:
+	rm -f *.deb

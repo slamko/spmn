@@ -45,10 +45,6 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-include ./packaging/deb/Makefile
-
-include ./packaging/xbps/Makefile
-
 installdirs: executable COPYING README.md
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
 	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/$(TARGET)
@@ -61,9 +57,13 @@ installdirs: executable COPYING README.md
 
 deb-installdirs: installdirs
 	mkdir -p $(TARGET)-$(VERSION)/DEBIAN
-	cp DEBIAN_control $(TARGET)-$(VERSION)/DEBIAN/control
+	cp ./packaging/deb/DEBIAN_control $(TARGET)-$(VERSION)/DEBIAN/control
 
-clean-pckgdirs:
+include ./packaging/deb/Makefile
+
+include ./packaging/xbps/Makefile
+
+clean-pkgdirs:
 	rm -rf $(TARGET)-$(VERSION)
 
 install: executable
