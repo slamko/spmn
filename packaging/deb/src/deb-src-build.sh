@@ -4,3 +4,4 @@
 
 dh_make -p "$1" --createorig
 debuild
+
