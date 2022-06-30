@@ -1,8 +1,24 @@
+/*
+Copyright 2022 Viacheslav Chepelyk-Kozhin.
+
+This file is part of Suckless Patch Manager (spmn).
+Spmn is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version.
+Spmn is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+You should have received a copy of the GNU General Public License along with
+spmn. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+
 
 #ifndef DEF_BASE
 #define DEF_BASE
 
-#define BASEREPO "/.cache/spm/sites/"
+#define BASEREPO "/.cache/spmn/sites/"
 #define PATCHESDIR ".suckless.org/patches/"
 #define PATCHESP "/patches/"
 #define DWM "dwm"
@@ -45,7 +61,7 @@
 #define CMD_LEN 8
 #define CMD_ARGPOS 1
 
-#define SPM_VERSION "0.2"
+#define SPMN_VERSION "0.2"
 
 #define MINI_ZIC
 #include "zic.h"

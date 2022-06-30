@@ -1,5 +1,5 @@
 CC=gcc
-TARGET=spm
+TARGET=spmn
 LIBS=-pthread -lm -lbsd 
 WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
 CFLAGS=$(WEFLAGS) -g -Iinclude/ -I. -Izic/lib

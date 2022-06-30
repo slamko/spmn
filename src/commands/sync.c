@@ -1,16 +1,16 @@
 /*
 Copyright 2022 Viacheslav Chepelyk-Kozhin.
 
-This file is part of Suckless Patch Manager (spm).
-Spm is free software: you can redistribute it and/or modify it under the
+This file is part of Suckless Patch Manager (spmnn).
+Spmnn is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
 version.
-Spm is distributed in the hope that it will be useful, but WITHOUT ANY
+Spmnn is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
-spm. If not, see <https://www.gnu.org/licenses/>.
+spmnn. If not, see <https://www.gnu.org/licenses/>.
 */
 
 

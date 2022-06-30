@@ -1,16 +1,16 @@
 /*
 Copyright 2022 Viacheslav Chepelyk-Kozhin.
 
-This file is part of Suckless Patch Manager (spm).
-Spm is free software: you can redistribute it and/or modify it under the
+This file is part of Suckless Patch Manager (spmn).
+Spmn is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
 Foundation, either version 3 of the License, or (at your option) any later
 version.
-Spm is distributed in the hope that it will be useful, but WITHOUT ANY
+Spmn is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
-spm. If not, see <https://www.gnu.org/licenses/>.
+spmn. If not, see <https://www.gnu.org/licenses/>.
 */
 
 
@@ -24,7 +24,7 @@ spm. If not, see <https://www.gnu.org/licenses/>.
 
 static const char *usage_msg =
     "\tUsage: \n"
-    "\tspm [command] [args] [options]\n"
+    "\tspmn [command] [args] [options]\n"
     "\n\tCommands:\n"
     "\t\tsearch <tool> [kewords] - search a patch for a <tool> with given [keywords] (default command).\n"
     "\t\tload   <tool> <patch>   - download <patch> for given <tool> with patch name.\n"
@@ -40,7 +40,7 @@ static const char *usage_msg =
     "\t\t\t-b:  show the web page on suckless.org for given patch in "
     "browser.\n\n"
     "\t\tload: \n"
-    "\t\t\t-a:  load and apply patch at once (the same as spm apply).\n\n"
+    "\t\t\t-a:  load and apply patch at once (the same as spmn apply).\n\n"
     "\t\tsearch: \n"
     "\t\t\t-f:  show patch description for each patch found.\n\n"
     "\t\tapply: \n"
@@ -69,5 +69,5 @@ void print_usage(void) {
 }
 
 void print_version(void) {
-	puts("spm version: " SPM_VERSION);
+	puts("spmn version: " SPMN_VERSION);
 }
