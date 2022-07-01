@@ -1,7 +1,8 @@
 *.o
+spmn
 spm
 .vscode/
-.cache/
+**/.cache/
 *.diff
 spm-*/
 *.xbps
