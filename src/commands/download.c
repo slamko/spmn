@@ -117,18 +117,18 @@ static result copy_diff_file(const char *diff_f, const char *patch_path) {
     snprintf(sdiff_path, tot_buf_len, "%s/%s", patch_path, diff_f);
 
     source_diff = open(sdiff_path, O_RDONLY);
-    TRY_UNWRAP_NEG(source_diff, DO_CLEAN(cl_diff_path));
+    TRY_NEG(source_diff, DO_CLEAN(cl_diff_path));
     dest_diff = open(diff_f, O_CREAT | O_WRONLY, 0640);
-    TRY_UNWRAP_NEG(dest_diff, DO_CLEAN(cl_source_fd));
+    TRY_NEG(dest_diff, DO_CLEAN(cl_source_fd));
 
-    TRY_UNWRAP_NEG(stat(sdiff_path, &diff_st), DO_CLEAN(cl_dest_fd));
+    TRY_NEG(stat(sdiff_path, &diff_st), DO_CLEAN(cl_dest_fd));
 
     TRY_PTR(copy_buf = calloc(diff_st.st_size, sizeof(*copy_buf)),
             DO_CLEAN(cl_dest_fd));
 
     read_buf_c = read(source_diff, copy_buf, diff_st.st_size);
-    TRY_UNWRAP_NEG(read_buf_c, DO_CLEAN_ALL());
-    TRY_UNWRAP_NEG(write(dest_diff, copy_buf, read_buf_c), DO_CLEAN_ALL());
+    TRY_NEG(read_buf_c, DO_CLEAN_ALL());
+    TRY_NEG(write(dest_diff, copy_buf, read_buf_c), DO_CLEAN_ALL());
 
 	ZIC_RESULT = OK;
     CLEANUP_ALL(free(copy_buf));

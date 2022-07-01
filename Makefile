@@ -1,9 +1,10 @@
 CC=gcc
 TARGET=spmn
 LIBS=-pthread -lm -lbsd 
-WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic
-CFLAGS=$(WEFLAGS) -g -Iinclude/ -I. -Izic/lib
+WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic -Iinclude/ -I. -Izic/lib
+CFLAGS=$(WEFLAGS) -g
 VERSION=1.0_3
+OPT=-O1
 
 SRCD=src
 HEADERD=include
@@ -26,9 +27,14 @@ HEADERSUTILS:=$(SRCUTILS:$(SRCD)/%.c=$(HEADERD)/%.h)
 HEADERSCMD:=$(SRCCOMMANDS:$(SRCD)/%.c=$(HEADERD)/%.h)
 HEADERS=$(HEADERSMAIN) $(HEADERSUTILS) $(HEADERSCMD)
 
-all: executable
+all: release
 
 executable: $(OBJDIRS) $(TARGET)
+
+release: CFLAGS=$(WEFLAGS) $(OPT)
+release: executable
+
+debug: executable
 
 $(TARGET) : $(OBJS)
 	$(CC) $(CFLAGS) $^ $(LIBS) -o $@
@@ -66,7 +72,7 @@ include ./packaging/xbps/Makefile
 clean-pkgdirs:
 	rm -rf $(TARGET)-$(VERSION)
 
-install: executable
+install: release
 	mkdir -p $(BIND)
 	mkdir -p /usr/share/licenses/$(TARGET)
 	mkdir -p /usr/share/doc/$(TARGET)

@@ -100,8 +100,8 @@ spappend(char **bufp, const char *base, const char *append) {
     
     buf = *bufp;
 
-    strncpy(buf, base, baselen);
-    strncat(buf, append, pnamelen);
+    memcpy(buf, base, baselen);
+    memcpy(buf + baselen, append, pnamelen);
 
     RET_OK();
 }
@@ -173,10 +173,10 @@ search_tooldir(char **buf, const char *basecacherepo, const char *toolname) {
 
 result
 str_append_patch_dir(char **patchdir, const char *append, size_t psize) {
-    *patchdir = calloc(psize, sizeof(**patchdir)); 
+    *patchdir = calloc(psize + 1, sizeof(**patchdir)); 
     UNWRAP_PTR (*patchdir)
     
-    strncpy(*patchdir, append, psize - 1);
+    strncpy(*patchdir, append, psize);
     RET_OK()
 }
 
@@ -256,6 +256,7 @@ check_baserepo_valid(const char *basecacherepo) {
 
 		repo_d = opendir(basecacherepo);
 		for (fcnt = 0; (readdir(repo_d)); fcnt++);
+		closedir(repo_d);
 		return fcnt > 3;
 	}
     return false;

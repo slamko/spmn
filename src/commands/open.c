@@ -87,9 +87,9 @@ static result print_pdescription(const char *toolname, const char *patch_name,
 
   TRY_PTR(targetp = popen(LESS_CMD, "w"), DO_CLEAN(cl_printbuf))
   
-  TRY_UNWRAP_NEG(
+  TRY_NEG(
       fread(print_buf, sizeof(*print_buf), sp.st_size, patchf), DO_CLEAN_ALL());
-  TRY_UNWRAP_NEG (fwrite(print_buf, sizeof(*print_buf), sp.st_size, targetp), DO_CLEAN_ALL());
+  TRY_NEG (fwrite(print_buf, sizeof(*print_buf), sp.st_size, targetp), DO_CLEAN_ALL());
 
   CLEANUP_ALL(pclose(targetp));
   CLEANUP(cl_printbuf, free(print_buf));

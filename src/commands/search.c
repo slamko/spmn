@@ -126,7 +126,7 @@ read_description(FILE *descfile, const char *indexmd) {
                     break;
             } else {
                 if (descrlen > 0)
-                    TRY_UNWRAP_NEG (fputs(tempbuf, descfile), DO_CLEAN_ALL());
+                    TRY_NEG (fputs(tempbuf, descfile), DO_CLEAN_ALL());
                 
                 memcpy(tempbuf, linebuf, sizeof(linebuf));
             }
@@ -138,7 +138,7 @@ read_description(FILE *descfile, const char *indexmd) {
     }
 
     if (description_exists) {
-        TRY_UNWRAP_NEG (fflush(descfile), DO_CLEAN_ALL());
+        TRY_NEG (fflush(descfile), DO_CLEAN_ALL());
     }
 
 	ZIC_RESULT = OK;
