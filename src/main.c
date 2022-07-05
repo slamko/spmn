@@ -48,17 +48,8 @@ typedef int (*commandp)(int, char **, const char *);
 
 #define CMD_CNT 7
 
-result help(int argc, char **argv, const char *basecacherepo) {
-    KINDA_USE_3ARG(argc, argv, basecacherepo);
-    print_usage();
-    RET_OK()
-}
-
-result version(int argc, char **argv, const char *basecacherepo) {
-    KINDA_USE_3ARG(argc, argv, basecacherepo);
-    print_version();
-    RET_OK()
-}
+result help(int, char **, const char *);
+result version(int, char **, const char *);
 
 static const commandp commands[CMD_CNT] = {
     &parse_sync_args, &parse_search_args, &parse_open_args,
@@ -82,6 +73,18 @@ static int local_repo_is_obsolete(struct tm *cttm, struct tm *lmttm) {
     return cttm->tm_mday - lmttm->tm_mday >= SYNC_INTERVAL_D ||
            (cttm->tm_mon > lmttm->tm_mon && cttm->tm_mday > SYNC_INTERVAL_D) ||
            (cttm->tm_year > lmttm->tm_year && cttm->tm_mday > SYNC_INTERVAL_D);
+}
+
+result help(int argc, char **argv, const char *basecacherepo) {
+    KINDA_USE_3ARG(argc, argv, basecacherepo);
+    print_usage();
+    RET_OK()
+}
+
+result version(int argc, char **argv, const char *basecacherepo) {
+    KINDA_USE_3ARG(argc, argv, basecacherepo);
+    print_version();
+    RET_OK()
 }
 
 static result try_sync_caches(const char *basecacherepo) {

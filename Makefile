@@ -5,6 +5,7 @@ WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic -Iinclude/ -I. -Iz
 CFLAGS=$(WEFLAGS) -g
 VERSION=1.0_3
 OPT=-O1
+PKG_NAME=$(TARGET)-$(VERSION)
 
 SRCD=src
 HEADERD=include
@@ -51,26 +52,35 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-installdirs: executable COPYING README.md
-	mkdir -p $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
-	mkdir -p $(TARGET)-$(VERSION)/usr/share/doc/$(TARGET)
-	mkdir -p $(TARGET)-$(VERSION)/usr/bin
-	mkdir -p $(TARGET)-$(VERSION)/usr/share/man/man1/
-	cp COPYING $(TARGET)-$(VERSION)/usr/share/licenses/$(TARGET)
-	cp README.md $(TARGET)-$(VERSION)/usr/share/doc/spm
-	cp $(TARGET) $(TARGET)-$(VERSION)/usr/bin
-	cp $(TARGET).1 $(TARGET)-$(VERSION)/usr/share/man/man1/
+installdirs: release COPYING README.md
+	mkdir -p $(PKG_NAME)/usr/share/licenses/$(TARGET)
+	mkdir -p $(PKG_NAME)/usr/share/doc/$(TARGET)
+	mkdir -p $(PKG_NAME)/usr/bin
+	mkdir -p $(PKG_NAME)/usr/share/man/man1/
+	cp COPYING $(PKG_NAME)/usr/share/licenses/$(TARGET)
+	cp README.md $(PKG_NAME)/usr/share/doc/spm
+	cp $(TARGET) $(PKG_NAME)/usr/bin
+	cp $(TARGET).1 $(PKG_NAME)/usr/share/man/man1/
 
 deb-installdirs: installdirs
-	mkdir -p $(TARGET)-$(VERSION)/DEBIAN
-	cp ./packaging/deb/DEBIAN_control $(TARGET)-$(VERSION)/DEBIAN/control
+	mkdir -p $(PKG_NAME)/DEBIAN
+	cp ./packaging/deb/DEBIAN_control $(PKG_NAME)/DEBIAN/control
 
 include ./packaging/deb/Makefile
 
 include ./packaging/xbps/Makefile
 
 clean-pkgdirs:
-	rm -rf $(TARGET)-$(VERSION)
+	rm -rf $(PKG_NAME)
+
+dist: dist-zip dist-gz
+
+dist-zip:
+	git archive HEAD --format=zip > $(PKG_NAME).zip
+
+dist-gz:
+	git archive HEAD --format=tar > $(PKG_NAME).tar
+	gzip $(PKG_NAME).tar
 
 install: release
 	mkdir -p $(BIND)
@@ -94,3 +104,5 @@ uninstall:
 clean:
 	$(RM) -r $(BUILDD)	
 	$(RM) $(TARGET)
+	$(RM) *gz
+	$(RM) *zip

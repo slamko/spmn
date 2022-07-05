@@ -1,8 +1,8 @@
-Package: spm
+Package: spmn
 Version: 0.3.1
 Section: development
 Priority: optional
 Architecture: amd64
 Depends: xdg-utils, git, libbsd0
-Maintainer: Viacheslav <https://github.com/slamko/spm>
+Maintainer: Viacheslav <https://github.com/slamko/spmn>
 Description: Suckless patch manager
