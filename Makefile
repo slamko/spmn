@@ -82,6 +82,13 @@ dist-gz:
 	git archive HEAD --format=tar > $(PKG_NAME).tar
 	gzip $(PKG_NAME).tar
 
+gen-sha256sums:
+	sha256sum $(PKG_NAME).tar.gz \
+	 $(PKG_NAME).zip \
+	 $(PKG_NAME).deb \
+	 $(PKG_NAME).amd64.xbps \
+	 $(PKG_NAME).x86_64.xbps > SHA256SUMS
+
 install: release
 	mkdir -p $(BIND)
 	mkdir -p /usr/share/licenses/$(TARGET)

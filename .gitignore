@@ -4,8 +4,13 @@ spm
 .vscode/
 **/.cache/
 *.diff
-spm-*/
+spmn-*/
 *.xbps
 *.deb
 *repodata
-exmperimental/
+experimental/
+*.tar
+*.zip
+*.gz
+*.txt
+SHA*
