@@ -1,7 +1,7 @@
 CC=gcc
 TARGET=spmn
 LIBS=-pthread -lm -lbsd 
-WEFLAGS=-Wall -Wextra -Wno-unused-parameter -Werror -pedantic -Iinclude/ -I. -Izic/lib
+WEFLAGS=-Wall -Wextra -Wno-unused-parameter -pedantic -Iinclude/ -I. -Izic/lib
 CFLAGS=$(WEFLAGS) -g
 VERSION=1.0_3
 OPT=-O1
@@ -70,11 +70,14 @@ include ./packaging/deb/Makefile
 
 include ./packaging/xbps/Makefile
 
+.ONESHELL: test-aur-pkg
+
 test-aur-pkg: PKGBUILD
 	mkdir test-aur
 	cp PKGBUILD ./test-aur
-	cd test-aur && \
-		makepkg
+	cd test-aur
+	makepkg
+	cd -
 	rm -rf test-aur
 
 clean-pkgdirs:
