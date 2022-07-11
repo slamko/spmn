@@ -1,9 +1,8 @@
 #!/bin/sh
 
 # arg $1 - target directory
-# arg $2 - architecture
 
-xbps-create --architecture "$2" \
+xbps-create --architecture x86_64 \
 			--pkgver "$1" \
 			--dependencies "git>=2.9.5 xdg-utils>=1.0.0 libbsd>=0.2.1" \
 			--homepage "https://github.com/slamko/spmn" \

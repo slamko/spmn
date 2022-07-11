@@ -98,9 +98,10 @@ static int parse_search_symbols(searchsyms *sargs, char **sstrings,
             words = wrealloc;
         }
 
-        if (!words)
+        if (!words) {
             DO_CLEAN_ALL();
-
+		}
+			
         for (token = strtok_r(parsedsstr, delim, &context);
              token && wid < tstrcnt; token = strtok_r(NULL, delim, &context)) {
             if (*token != '-') {
