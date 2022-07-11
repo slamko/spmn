@@ -70,6 +70,13 @@ include ./packaging/deb/Makefile
 
 include ./packaging/xbps/Makefile
 
+test-aur-pkg: PKGBUILD
+	mkdir test-aur
+	cp PKGBUILD ./test-aur
+	cd test-aur && \
+		makepkg
+	rm -rf test-aur
+
 clean-pkgdirs:
 	rm -rf $(PKG_NAME)
 
@@ -94,11 +101,10 @@ install: release
 	mkdir -p /usr/share/licenses/$(TARGET)
 	mkdir -p /usr/share/doc/$(TARGET)
 	mkdir -p /usr/share/man/man1/
-	cp -f ./$(TARGET) $(BIN)
-	cp -f ./COPYING /usr/share/licenses/$(TARGET)/COPYING
-	cp -f ./README.md /usr/share/doc/$(TARGET)/README
-	cp -f ./$(TARGET).1 /usr/share/man/man1/$(TARGET).1
-	chmod 755 $(BIN)
+	install -Dm755 ./$(TARGET) $(BIN)
+	install -Dm644 ./COPYING /usr/share/licenses/$(TARGET)/COPYING
+	install -Dm644 ./README.md /usr/share/doc/$(TARGET)/README
+	install -Dm644 ./$(TARGET).1 /usr/share/man/man1/$(TARGET).1
 
 uninstall:
 	$(RM) $(BIN)
