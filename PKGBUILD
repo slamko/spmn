@@ -9,12 +9,11 @@ license=('GPL')
 depends=('glibc' 'libbsd' 'xdg-utils' 'git')
 makedepends=('git')
 source=("$pkgname-$pkgver.tar.gz::https://github.com/slamko/spmn/archive/refs/tags/v1.0_3.tar.gz")
-md5sums=('SKIP')
+sha256sums=('SKIP')
 
 prepare() {
-	mkdir "$pkgname-$pkgver"
-	cp -r ../* "$pkgname-$pkgver"
-	cd "$pkgname-$pkgver1"
+	tar -xf "$pkgname-$pkgver.tar.gz"
+	cd "$pkgname-$pkgver"
 	git clone "https://github.com/slamko/zic.git"
 }
 

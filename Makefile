@@ -12,6 +12,7 @@ HEADERD=include
 BUILDD=build
 UTILSD=utils
 CMDD=commands
+DESTDIR=""
 
 SRCMAIN:=$(wildcard $(SRCD)/*.c)
 SRCUTILS:=$(wildcard $(SRCD)/$(UTILSD)/*.c)
@@ -19,6 +20,7 @@ SRCCOMMANDS:=$(wildcard $(SRCD)/$(CMDD)/*.c)
 SRC=$(SRCMAIN) $(SRCUTILS) $(SRCCOMMANDS)
 BIND=/bin
 BIN:=$(BIND)/$(TARGET)
+INSTALL_FILES=release COPYING README.md $(TARGET).1
 
 OBJS=$(SRC:$(SRCD)/%.c=$(BUILDD)/%.o)
 OBJDIRS=$(BUILDD) $(BUILDD)/$(UTILSD) $(BUILDD)/$(CMDD)
@@ -52,15 +54,9 @@ $(BUILDD)/$(UTILSD)/%.o: $(SRCD)/$(UTILSD)/%.c $(HEADERSUTILS)
 $(BUILDD)/$(CMDD)/%.o: $(SRCD)/$(CMDD)/%.c $(HEADERSCMD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-installdirs: release COPYING README.md
-	mkdir -p $(PKG_NAME)/usr/share/licenses/$(TARGET)
-	mkdir -p $(PKG_NAME)/usr/share/doc/$(TARGET)
-	mkdir -p $(PKG_NAME)/usr/bin
-	mkdir -p $(PKG_NAME)/usr/share/man/man1/
-	cp COPYING $(PKG_NAME)/usr/share/licenses/$(TARGET)
-	cp README.md $(PKG_NAME)/usr/share/doc/spm
-	cp $(TARGET) $(PKG_NAME)/usr/bin
-	cp $(TARGET).1 $(PKG_NAME)/usr/share/man/man1/
+installdirs: $(INSTALL_FILES)
+installdirs: DESTDIR=$(PKG_NAME)
+installdirs: install
 
 deb-installdirs: installdirs
 	mkdir -p $(PKG_NAME)/DEBIAN
@@ -99,21 +95,21 @@ gen-sha256sums:
 	 $(PKG_NAME).amd64.xbps \
 	 $(PKG_NAME).x86_64.xbps > SHA256SUMS
 
-install: release
+install: $(INSTALL_FILES)
 	mkdir -p $(BIND)
-	mkdir -p /usr/share/licenses/$(TARGET)
-	mkdir -p /usr/share/doc/$(TARGET)
-	mkdir -p /usr/share/man/man1/
-	install -Dm755 ./$(TARGET) $(BIN)
-	install -Dm644 ./COPYING /usr/share/licenses/$(TARGET)/COPYING
-	install -Dm644 ./README.md /usr/share/doc/$(TARGET)/README
-	install -Dm644 ./$(TARGET).1 /usr/share/man/man1/$(TARGET).1
+	mkdir -p $(DESTDIR)/usr/share/licenses/$(TARGET)
+	mkdir -p $(DESTDIR)/usr/share/doc/$(TARGET)
+	mkdir -p $(DESTDIR)/usr/share/man/man1/
+	install -Dm755 ./$(TARGET) $(DESTDIR)/$(BIN)
+	install -Dm644 ./COPYING $(DESTDIR)/usr/share/licenses/$(TARGET)/COPYING
+	install -Dm644 ./README.md $(DESTDIR)/usr/share/doc/$(TARGET)/README
+	install -Dm644 ./$(TARGET).1 $(DESTDIR)/usr/share/man/man1/$(TARGET).1
 
 uninstall:
-	$(RM) $(BIN)
-	$(RM) /usr/share/licenses/$(TARGET)/COPYING
-	$(RM) /usr/share/doc/$(TARGET)/README
-	$(RM) /usr/share/man/man1/$(TARGET).1
+	$(RM) $(DESTDIR)$(BIN)
+	$(RM) $(DESTDIR)/usr/share/licenses/$(TARGET)/COPYING
+	$(RM) $(DESTDIR)/usr/share/doc/$(TARGET)/README
+	$(RM) $(DESTDIR)/usr/share/man/man1/$(TARGET).1
 
 .PHONY: clean
 
