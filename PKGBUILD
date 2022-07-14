@@ -1,6 +1,6 @@
 # Maintainer: Viacheslav Chepelyk-Kozhin <vaceslavkozin619@gmail.com>
 pkgname=spmn
-pkgver=1.0_3
+pkgver=1.0_5
 pkgrel=1
 pkgdesc="Suckless Package Manager"
 arch=('x86_64')
@@ -8,13 +8,15 @@ url="https://github.com/slamko/spmn"
 license=('GPL')
 depends=('glibc' 'libbsd' 'xdg-utils' 'git')
 makedepends=('git')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/slamko/spmn/archive/refs/tags/v1.0_3.tar.gz")
-sha256sums=('SKIP')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/slamko/spmn/releases/download/v1.0_5/$pkgname-$pkgver.tar.gz")
+sha256sums=('799a7a534fb72d30443738f2ad45e6c051d551b96c1ede299e07cc0cc7efee85')
 
 prepare() {
-	tar -xf "$pkgname-$pkgver.tar.gz"
+	mkdir "$pkgname-$pkgver"
+	cp "$pkgname-$pkgver.tar.gz" "$pkgname-$pkgver"
 	cd "$pkgname-$pkgver"
-	git clone "https://github.com/slamko/zic.git"
+	tar -xf "$pkgname-$pkgver.tar.gz"
+	git clone --depth 1 --branch v0.2.0 "https://github.com/slamko/zic.git"
 }
 
 build() {
@@ -24,5 +26,7 @@ build() {
 
 package() {
 	cd "$pkgname-$pkgver"
-	make DESTDIR="$pkgdir/" install
+	cat Makefile
+	make DESTDIR="$pkgdir" install
 }
+

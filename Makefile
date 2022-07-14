@@ -1,9 +1,9 @@
 CC=gcc
 TARGET=spmn
-LIBS=-pthread -lm -lbsd 
+LIBS=-pthread -lbsd 
 WEFLAGS=-Wall -Wextra -Wno-unused-parameter -pedantic -Iinclude/ -I. -Izic/lib
 CFLAGS=$(WEFLAGS) -g
-VERSION=1.0_3
+VERSION=1.0_5
 OPT=-O1
 PKG_NAME=$(TARGET)-$(VERSION)
 
@@ -18,7 +18,7 @@ SRCMAIN:=$(wildcard $(SRCD)/*.c)
 SRCUTILS:=$(wildcard $(SRCD)/$(UTILSD)/*.c)
 SRCCOMMANDS:=$(wildcard $(SRCD)/$(CMDD)/*.c)
 SRC=$(SRCMAIN) $(SRCUTILS) $(SRCCOMMANDS)
-BIND=/bin
+BIND=/usr/bin
 BIN:=$(BIND)/$(TARGET)
 INSTALL_FILES=release COPYING README.md $(TARGET).1
 
