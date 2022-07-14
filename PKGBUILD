@@ -2,14 +2,14 @@
 pkgname=spmn
 pkgver=1.0_5
 pkgrel=1
-pkgdesc="Suckless Package Manager"
+pkgdesc="Patch Manager for Suckless software"
 arch=('x86_64')
 url="https://github.com/slamko/spmn"
 license=('GPL')
 depends=('glibc' 'libbsd' 'xdg-utils' 'git')
 makedepends=('git')
-source=("$pkgname-$pkgver.tar.gz::https://github.com/slamko/spmn/releases/download/v1.0_5/$pkgname-$pkgver.tar.gz")
-sha256sums=('799a7a534fb72d30443738f2ad45e6c051d551b96c1ede299e07cc0cc7efee85')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/slamko/spmn/releases/download/v1.0_5d/$pkgname-$pkgver.tar.gz")
+sha256sums=('e3713e098ad1a018e9f5ab8c0997a705883b42d4ef2f9fe8b8a678235685838b')
 
 prepare() {
 	mkdir "$pkgname-$pkgver"

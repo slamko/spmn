@@ -18,7 +18,7 @@ SRCMAIN:=$(wildcard $(SRCD)/*.c)
 SRCUTILS:=$(wildcard $(SRCD)/$(UTILSD)/*.c)
 SRCCOMMANDS:=$(wildcard $(SRCD)/$(CMDD)/*.c)
 SRC=$(SRCMAIN) $(SRCUTILS) $(SRCCOMMANDS)
-BIND=/usr/bin
+BIND=usr/bin
 BIN:=$(BIND)/$(TARGET)
 INSTALL_FILES=release COPYING README.md $(TARGET).1
 
@@ -96,7 +96,7 @@ gen-sha256sums:
 	 $(PKG_NAME).x86_64.xbps > SHA256SUMS
 
 install: $(INSTALL_FILES)
-	mkdir -p $(BIND)
+	mkdir -p $(DESTDIR)/$(BIND)
 	mkdir -p $(DESTDIR)/usr/share/licenses/$(TARGET)
 	mkdir -p $(DESTDIR)/usr/share/doc/$(TARGET)
 	mkdir -p $(DESTDIR)/usr/share/man/man1/
