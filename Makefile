@@ -1,6 +1,6 @@
 CC=gcc
 TARGET=spmn
-LIBS=-pthread -lbsd 
+LIBS=-pthread -lbsd -lm
 WEFLAGS=-Wall -Wextra -Wno-unused-parameter -pedantic -Iinclude/ -I. -Izic/lib
 CFLAGS=$(WEFLAGS) -g
 VERSION=1.0_5

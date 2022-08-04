@@ -64,8 +64,8 @@ int parse_apply_args(int argc, char **argv, const char *basecacherepo) {
 			ERROR(ERR_INVARG);
 		case '?':
 			ERROR(ERR_INVARG);
-		}
-	}
+        }
+    }
 			
     TRY(applyp(argv[2], argv[3], basecacherepo), CATCH(ERR_SYS, HANDLE_SYS());
 
