@@ -3,11 +3,25 @@
 
 ### Why
 
-Suckless software starting to gain some popularity nowadays in Linux community. However, it is unlikely to become mainstream because of its suckless nature... People do not like to manually compile and patch (resolve conflicts) suckless software. Another thing that may scareaway some amount of newcomers is suckless.org website... It is so suckless that it consists of markdown files and of course doesn't have any kind of search system. So in order to patch dwm, for example, you should walk through the list of 250 patches and find that you want...  
+Suckless software is starting to gain some popularity nowadays in Linux community. And, sadly, I think that their website design does not correspond to the popularity of the project. It is so suckless that it consists of markdown files and of course doesn't have any kind of search system. So in order to patch dwm, for example, you should walk through the list of more than 250 patches (this number only grows!) and find the one you want...  
 
-So initially this project intended to be a command line tool for searching patches on suckless.org. However later on spm got some additional functionality like downloading applying patches. It may sound like Spm now violates suckless principals, but in fact it is quite simple: it just operates on a local clone of suckless.org page, so downloading a patch literally means copying the file, viewing a patch means ```cat```ting the file and so on...
+So initially this project intended to be a command line tool for searching patches on suckless.org. However later on ```spmn``` got some additional functionality like downloading applying patches. It may sound like ```spmn``` now violates suckless principals, but in fact it is quite simple: it just operates on a local clone of suckless.org page, so downloading a patch literally means copying the file, viewing a patch means printing the file contents and so on...
 
 ---
+
+### Installation 
+```spmn``` is currently packaged for Debian and Void Linux.  
+You can find binary packages with corresponding SHA sums in the [Releases section](https://github.com/slamko/spmn/releases).  
+It is also [available in AUR](https://aur.archlinux.org/packages/spmn) for Arch-based distros.  
+
+Otherwise you can easily compile it from source:
+
+```sh
+git clone https://github.com/slamko/spmn.git spmn &&
+cd spmn &&
+make &&
+make install
+```
 
 
 ### Using Spmn
